@@ -1,0 +1,66 @@
+syntax = "proto3";
+
+package strategy;
+
+option go_package = "./strategy";
+
+message StrategyInfo {
+  uint64 id = 1;
+  uint64 user_id = 2;
+  string name = 3;
+  string code = 4;
+  string description = 5;
+  string params_json = 6;
+  string status = 7;
+  bool is_system = 8;
+  string created_at = 9;
+}
+
+message StrategySignal {
+  uint64 id = 1;
+  uint64 run_id = 2;
+  uint64 strategy_id = 3;
+  string symbol = 4;
+  string name = 5;
+  string strategy_code = 6;
+  string signal_type = 7;
+  string signal_strength = 8;
+  double score = 9;
+  string reason = 10;
+  string risk_level = 11;
+  string trigger_price = 12;
+  string trigger_time = 13;
+  string raw_data_json = 14;
+  string disclaimer = 15;
+}
+
+message ListStrategiesReq { uint64 user_id = 1; }
+message ListStrategiesResp { repeated StrategyInfo items = 1; }
+message GetStrategyReq { uint64 user_id = 1; uint64 id = 2; }
+message GetStrategyResp { StrategyInfo item = 1; }
+message CreateStrategyReq { uint64 user_id = 1; string name = 2; string code = 3; string description = 4; string params_json = 5; }
+message CreateStrategyResp { StrategyInfo item = 1; }
+message UpdateStrategyReq { uint64 user_id = 1; uint64 id = 2; string name = 3; string description = 4; string params_json = 5; string status = 6; }
+message UpdateStrategyResp { StrategyInfo item = 1; }
+message RunStrategyReq { uint64 user_id = 1; uint64 strategy_id = 2; string strategy_code = 3; string symbol = 4; string params_json = 5; }
+message RunStrategyResp { uint64 run_id = 1; repeated StrategySignal signals = 2; string summary = 3; string disclaimer = 4; }
+message GetSignalsReq { uint64 user_id = 1; string strategy_code = 2; string signal_type = 3; int64 limit = 4; }
+message GetSignalsResp { repeated StrategySignal items = 1; }
+message GetSignalsBySymbolReq { uint64 user_id = 1; string symbol = 2; int64 limit = 3; }
+message GetSignalsBySymbolResp { repeated StrategySignal items = 1; }
+message GetLatestSignalReq { uint64 user_id = 1; string symbol = 2; }
+message GetLatestSignalResp { StrategySignal item = 1; }
+message DeleteStrategiesReq { uint64 user_id = 1; repeated uint64 ids = 2; }
+message DeleteStrategiesResp { uint64 deleted_count = 1; }
+
+service Strategy {
+  rpc ListStrategies(ListStrategiesReq) returns (ListStrategiesResp);
+  rpc GetStrategy(GetStrategyReq) returns (GetStrategyResp);
+  rpc CreateStrategy(CreateStrategyReq) returns (CreateStrategyResp);
+  rpc UpdateStrategy(UpdateStrategyReq) returns (UpdateStrategyResp);
+  rpc RunStrategy(RunStrategyReq) returns (RunStrategyResp);
+  rpc GetSignals(GetSignalsReq) returns (GetSignalsResp);
+  rpc GetSignalsBySymbol(GetSignalsBySymbolReq) returns (GetSignalsBySymbolResp);
+  rpc GetLatestSignal(GetLatestSignalReq) returns (GetLatestSignalResp);
+  rpc DeleteStrategies(DeleteStrategiesReq) returns (DeleteStrategiesResp);
+}

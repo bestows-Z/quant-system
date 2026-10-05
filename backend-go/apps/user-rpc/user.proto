@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+package user;
+
+option go_package = "./user";
+
+message RegisterRequest {
+  string username = 1;
+  string email = 2;
+  string password = 3;
+  string nickname = 4;
+}
+
+message LoginRequest {
+  string username = 1;
+  string password = 2;
+}
+
+message ProfileRequest {
+  uint64 user_id = 1;
+}
+
+message UserInfo {
+  uint64 id = 1;
+  string username = 2;
+  string email = 3;
+  string nickname = 4;
+  string status = 5;
+  repeated string roles = 6;
+  string created_at = 7;
+}
+
+message AuthReply {
+  UserInfo user = 1;
+  string token = 2;
+  int64 expire_at = 3;
+}
+
+message ProfileReply {
+  UserInfo user = 1;
+}
+
+service User {
+  rpc Register(RegisterRequest) returns (AuthReply);
+  rpc Login(LoginRequest) returns (AuthReply);
+  rpc Profile(ProfileRequest) returns (ProfileReply);
+}
+

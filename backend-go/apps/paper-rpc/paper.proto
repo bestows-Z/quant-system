@@ -1,0 +1,190 @@
+syntax = "proto3";
+
+package paper;
+
+option go_package = "./paper";
+
+message Empty {}
+
+message CreateAccountReq {
+  uint64 user_id = 1;
+  string account_name = 2;
+  string initial_cash = 3;
+}
+
+message ListAccountsReq { uint64 user_id = 1; }
+message GetAccountReq { uint64 user_id = 1; uint64 account_id = 2; }
+message GetAccountAssetsReq { uint64 user_id = 1; uint64 account_id = 2; }
+message ListPositionsReq { uint64 user_id = 1; uint64 account_id = 2; }
+
+message Account {
+  uint64 id = 1;
+  uint64 user_id = 2;
+  string account_name = 3;
+  string initial_cash = 4;
+  string cash = 5;
+  string frozen_cash = 6;
+  string total_asset = 7;
+  string market_value = 8;
+  string total_profit = 9;
+  string total_profit_rate = 10;
+  string status = 11;
+  string disclaimer = 12;
+  string created_at = 13;
+}
+
+message CreateAccountResp { Account account = 1; }
+message ListAccountsResp { repeated Account items = 1; }
+message GetAccountResp { Account account = 1; }
+message GetAccountAssetsResp { Account account = 1; }
+
+message Position {
+  uint64 id = 1;
+  uint64 account_id = 2;
+  uint64 user_id = 3;
+  string symbol = 4;
+  string name = 5;
+  int64 volume = 6;
+  int64 available_volume = 7;
+  int64 frozen_volume = 8;
+  string avg_cost = 9;
+  string market_price = 10;
+  string market_value = 11;
+  string profit = 12;
+  string profit_rate = 13;
+  int64 today_buy_volume = 14;
+  string last_buy_date = 15;
+}
+
+message ListPositionsResp { repeated Position items = 1; }
+
+message CreateOrderReq {
+  uint64 user_id = 1;
+  uint64 account_id = 2;
+  string client_order_id = 3;
+  string symbol = 4;
+  string name = 5;
+  string side = 6;
+  string order_type = 7;
+  string price = 8;
+  int64 volume = 9;
+}
+
+message CancelOrderReq {
+  uint64 user_id = 1;
+  uint64 order_id = 2;
+}
+
+message ListOrdersReq {
+  uint64 user_id = 1;
+  uint64 account_id = 2;
+  string symbol = 3;
+  string status = 4;
+}
+
+message GetOrderReq {
+  uint64 user_id = 1;
+  uint64 order_id = 2;
+}
+
+message Order {
+  uint64 id = 1;
+  string order_no = 2;
+  string client_order_id = 3;
+  uint64 account_id = 4;
+  uint64 user_id = 5;
+  string symbol = 6;
+  string name = 7;
+  string side = 8;
+  string order_type = 9;
+  string price = 10;
+  int64 volume = 11;
+  int64 filled_volume = 12;
+  string avg_filled_price = 13;
+  string status = 14;
+  string amount = 15;
+  string fee = 16;
+  string remark = 17;
+  string created_at = 18;
+  string disclaimer = 19;
+  int64 remaining_volume = 20;
+  string expire_at = 21;
+  string quote_time = 22;
+  string data_mode = 23;
+}
+
+message CreateOrderResp { Order order = 1; }
+message CancelOrderResp { Order order = 1; }
+message ListOrdersResp { repeated Order items = 1; }
+message GetOrderResp { Order order = 1; }
+
+message ListTradesReq {
+  uint64 user_id = 1;
+  uint64 account_id = 2;
+  string symbol = 3;
+}
+
+message Trade {
+  uint64 id = 1;
+  string trade_no = 2;
+  uint64 order_id = 3;
+  string order_no = 4;
+  uint64 account_id = 5;
+  uint64 user_id = 6;
+  string symbol = 7;
+  string name = 8;
+  string side = 9;
+  string price = 10;
+  int64 volume = 11;
+  string amount = 12;
+  string fee = 13;
+  string stamp_duty = 14;
+  string slippage = 15;
+  string trade_time = 16;
+  int32 depth_level = 17;
+  string quote_time = 18;
+  string data_mode = 19;
+}
+
+message ListTradesResp { repeated Trade items = 1; }
+
+message GetEquityCurveReq {
+  uint64 user_id = 1;
+  uint64 account_id = 2;
+}
+
+message EquityPoint {
+  string trade_date = 1;
+  string total_asset = 2;
+  string cash = 3;
+  string market_value = 4;
+  string total_profit = 5;
+  string total_profit_rate = 6;
+  string drawdown = 7;
+}
+
+message GetEquityCurveResp { repeated EquityPoint items = 1; }
+
+message MatchPendingBySymbolReq { string symbol = 1; string order_book_json = 2; }
+message MatchPendingBySymbolResp {
+  int64 matched_orders = 1;
+  int64 created_trades = 2;
+}
+message ExpireOrdersReq { int32 limit = 1; }
+message ExpireOrdersResp { int64 expired_orders = 1; }
+
+service Paper {
+  rpc CreateAccount(CreateAccountReq) returns (CreateAccountResp);
+  rpc ListAccounts(ListAccountsReq) returns (ListAccountsResp);
+  rpc GetAccount(GetAccountReq) returns (GetAccountResp);
+  rpc GetAccountAssets(GetAccountAssetsReq) returns (GetAccountAssetsResp);
+  rpc ListPositions(ListPositionsReq) returns (ListPositionsResp);
+  rpc CreateOrder(CreateOrderReq) returns (CreateOrderResp);
+  rpc CancelOrder(CancelOrderReq) returns (CancelOrderResp);
+  rpc ListOrders(ListOrdersReq) returns (ListOrdersResp);
+  rpc GetOrder(GetOrderReq) returns (GetOrderResp);
+  rpc ListTrades(ListTradesReq) returns (ListTradesResp);
+  rpc GetEquityCurve(GetEquityCurveReq) returns (GetEquityCurveResp);
+  rpc MatchPendingBySymbol(MatchPendingBySymbolReq) returns (MatchPendingBySymbolResp);
+  rpc ExpireOrders(ExpireOrdersReq) returns (ExpireOrdersResp);
+}

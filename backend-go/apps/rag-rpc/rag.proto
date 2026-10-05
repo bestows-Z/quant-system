@@ -1,0 +1,145 @@
+syntax = "proto3";
+
+package rag;
+
+option go_package = "./rag";
+
+message CreateKnowledgeBaseReq {
+  uint64 user_id = 1;
+  string name = 2;
+  string description = 3;
+  string visibility = 4;
+}
+
+message ListKnowledgeBasesReq { uint64 user_id = 1; }
+
+message GetKnowledgeBaseReq {
+  uint64 user_id = 1;
+  uint64 id = 2;
+}
+
+message KnowledgeBase {
+  uint64 id = 1;
+  uint64 user_id = 2;
+  string name = 3;
+  string description = 4;
+  string visibility = 5;
+  string embedding_provider = 6;
+  string vector_store = 7;
+  string collection_name = 8;
+  string created_at = 9;
+}
+
+message CreateKnowledgeBaseResp { KnowledgeBase item = 1; }
+message ListKnowledgeBasesResp { repeated KnowledgeBase items = 1; }
+message GetKnowledgeBaseResp { KnowledgeBase item = 1; }
+message DeleteKnowledgeBaseReq { uint64 user_id = 1; uint64 id = 2; }
+message DeleteKnowledgeBaseResp { bool ok = 1; bool vector_cleanup_pending = 2; bool already_deleted = 3; }
+
+message CreateDocumentReq {
+  uint64 user_id = 1;
+  uint64 knowledge_base_id = 2;
+  string title = 3;
+  string doc_type = 4;
+  string source_url = 5;
+  string content = 6;
+  string metadata_json = 7;
+}
+
+message ListDocumentsReq {
+  uint64 user_id = 1;
+  uint64 knowledge_base_id = 2;
+}
+
+message GetDocumentReq {
+  uint64 user_id = 1;
+  uint64 id = 2;
+}
+
+message Document {
+  uint64 id = 1;
+  uint64 knowledge_base_id = 2;
+  uint64 user_id = 3;
+  string title = 4;
+  string doc_type = 5;
+  string source_url = 6;
+  string status = 7;
+  string metadata_json = 8;
+  int64 chunk_count = 9;
+  string created_at = 10;
+}
+
+message CreateDocumentResp { Document item = 1; }
+message ListDocumentsResp { repeated Document items = 1; }
+message GetDocumentResp { Document item = 1; }
+message DeleteDocumentReq { uint64 user_id = 1; uint64 id = 2; }
+message DeleteDocumentResp { bool ok = 1; bool vector_cleanup_pending = 2; bool already_deleted = 3; }
+
+message ListChunksReq {
+  uint64 user_id = 1;
+  uint64 document_id = 2;
+}
+
+message Chunk {
+  uint64 id = 1;
+  uint64 document_id = 2;
+  uint64 knowledge_base_id = 3;
+  int64 chunk_index = 4;
+  string content = 5;
+  int64 token_count = 6;
+  string metadata_json = 7;
+}
+
+message ListChunksResp { repeated Chunk items = 1; }
+
+message SearchReq {
+  uint64 user_id = 1;
+  uint64 knowledge_base_id = 2;
+  string query = 3;
+  int64 top_k = 4;
+}
+
+message SearchResult {
+  uint64 chunk_id = 1;
+  uint64 document_id = 2;
+  string document_title = 3;
+  string content = 4;
+  double score = 5;
+  string metadata_json = 6;
+}
+
+message SearchResp {
+  repeated SearchResult items = 1;
+  string provider = 2;
+  string model = 3;
+  string disclaimer = 4;
+}
+
+message AskReq {
+  uint64 user_id = 1;
+  uint64 knowledge_base_id = 2;
+  string question = 3;
+  int64 top_k = 4;
+}
+
+message AskResp {
+  string answer = 1;
+  repeated SearchResult references = 2;
+  string provider = 3;
+  string model = 4;
+  string disclaimer = 5;
+}
+
+service Rag {
+  rpc CreateKnowledgeBase(CreateKnowledgeBaseReq) returns (CreateKnowledgeBaseResp);
+  rpc ListKnowledgeBases(ListKnowledgeBasesReq) returns (ListKnowledgeBasesResp);
+  rpc GetKnowledgeBase(GetKnowledgeBaseReq) returns (GetKnowledgeBaseResp);
+	rpc DeleteKnowledgeBase(DeleteKnowledgeBaseReq) returns (DeleteKnowledgeBaseResp);
+  rpc CreateDocument(CreateDocumentReq) returns (CreateDocumentResp);
+  rpc ListDocuments(ListDocumentsReq) returns (ListDocumentsResp);
+  rpc GetDocument(GetDocumentReq) returns (GetDocumentResp);
+	rpc DeleteDocument(DeleteDocumentReq) returns (DeleteDocumentResp);
+  rpc ListChunks(ListChunksReq) returns (ListChunksResp);
+  rpc Search(SearchReq) returns (SearchResp);
+  rpc Ask(AskReq) returns (AskResp);
+}

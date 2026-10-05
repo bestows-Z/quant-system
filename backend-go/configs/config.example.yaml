@@ -1,0 +1,51 @@
+app:
+  name: quant-system-backend
+  env: local
+  port: 8080
+  data_mode: mock
+
+log:
+  level: info
+  format: json
+
+mysql:
+  host: mysql
+  port: 3306
+  database: quant_system
+  username: quant
+  password: quant_password
+  charset: utf8mb4
+  parse_time: true
+  loc: Local
+  max_idle_conns: 10
+  max_open_conns: 50
+
+redis:
+  host: redis
+  port: 6379
+  password: ""
+  db: 0
+
+jwt:
+  secret: change_me_to_a_long_random_secret
+  expire_hours: 72
+
+quant_python:
+  base_url: http://quant-python:8000
+  timeout_seconds: 30
+
+paper:
+  commission_rate: 0.0003
+  slippage_rate: 0.0001
+  enforce_t_plus_one: false
+
+scheduler:
+  enable: true
+  realtime_quote_cron: "*/30 * * * * *"
+  daily_bar_cron: "0 30 17 * * 1-5"
+
+risk:
+  max_single_position_ratio: 0.3
+  max_account_drawdown_ratio: 0.2
+  high_volatility_threshold: 0.08
+

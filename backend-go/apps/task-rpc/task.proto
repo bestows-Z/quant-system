@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+package task;
+
+option go_package = "./task";
+
+message TaskInfo {
+  uint64 id = 1;
+  string task_no = 2;
+  uint64 user_id = 3;
+  string task_type = 4;
+  string source_type = 5;
+  string source_id = 6;
+  string title = 7;
+  string status = 8;
+  int64 progress = 9;
+  string payload_json = 10;
+  string result_json = 11;
+  string error_message = 12;
+  string started_at = 13;
+  string finished_at = 14;
+  string created_at = 15;
+  string updated_at = 16;
+}
+
+message TaskLog {
+  uint64 id = 1;
+  uint64 task_id = 2;
+  string task_no = 3;
+  string level = 4;
+  string message = 5;
+  string detail_json = 6;
+  string created_at = 7;
+}
+
+message CreateTaskReq { uint64 user_id = 1; string task_type = 2; string source_type = 3; string source_id = 4; string title = 5; string payload_json = 6; }
+message CreateTaskResp { TaskInfo item = 1; }
+message ListTasksReq { uint64 user_id = 1; string task_type = 2; string status = 3; string source_type = 4; string source_id = 5; int64 limit = 6; }
+message ListTasksResp { repeated TaskInfo items = 1; }
+message GetTaskReq { uint64 user_id = 1; uint64 id = 2; }
+message GetTaskResp { TaskInfo item = 1; }
+message UpdateTaskStatusReq { uint64 user_id = 1; uint64 id = 2; string status = 3; int64 progress = 4; string result_json = 5; string error_message = 6; }
+message UpdateTaskStatusResp { TaskInfo item = 1; }
+message CancelTaskReq { uint64 user_id = 1; uint64 id = 2; }
+message CancelTaskResp { TaskInfo item = 1; }
+message AddTaskLogReq { uint64 user_id = 1; uint64 task_id = 2; string level = 3; string message = 4; string detail_json = 5; }
+message AddTaskLogResp { TaskLog item = 1; }
+message ListTaskLogsReq { uint64 user_id = 1; uint64 task_id = 2; int64 limit = 3; }
+message ListTaskLogsResp { repeated TaskLog items = 1; }
+
+service Task {
+  rpc CreateTask(CreateTaskReq) returns (CreateTaskResp);
+  rpc ListTasks(ListTasksReq) returns (ListTasksResp);
+  rpc GetTask(GetTaskReq) returns (GetTaskResp);
+  rpc UpdateTaskStatus(UpdateTaskStatusReq) returns (UpdateTaskStatusResp);
+  rpc CancelTask(CancelTaskReq) returns (CancelTaskResp);
+  rpc AddTaskLog(AddTaskLogReq) returns (AddTaskLogResp);
+  rpc ListTaskLogs(ListTaskLogsReq) returns (ListTaskLogsResp);
+}

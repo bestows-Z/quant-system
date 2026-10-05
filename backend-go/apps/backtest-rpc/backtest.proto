@@ -1,0 +1,72 @@
+syntax = "proto3";
+
+package backtest;
+
+option go_package = "./backtest";
+
+message BacktestResult {
+  uint64 id = 1;
+  uint64 task_id = 2;
+  string symbol = 3;
+  string strategy_code = 4;
+  double total_return = 5;
+  double annual_return = 6;
+  double max_drawdown = 7;
+  double win_rate = 8;
+  double profit_loss_ratio = 9;
+  int64 total_trades = 10;
+  int64 winning_trades = 11;
+  int64 losing_trades = 12;
+  string final_asset = 13;
+  string raw_result_json = 14;
+  string disclaimer = 15;
+  string data_source = 16;
+  string data_mode = 17;
+  string params_json = 18;
+  string engine_version = 19;
+  string execution_model = 20;
+  string adjust = 21;
+  string quality_status = 22;
+  string config_json = 23;
+  string quality_json = 24;
+  double realized_pnl = 25;
+  double unrealized_pnl = 26;
+  double total_fees = 27;
+  double turnover_rate = 28;
+  double exposure_rate = 29;
+}
+
+message BacktestTrade { uint64 id = 1; uint64 task_id = 2; string symbol = 3; string trade_time = 4; string side = 5; string price = 6; int64 volume = 7; string amount = 8; string fee = 9; string profit = 10; string reason = 11; string signal_date = 12; string base_price = 13; string commission = 14; string stamp_duty = 15; string transfer_fee = 16; }
+message EquityPoint { uint64 id = 1; uint64 task_id = 2; string trade_date = 3; string total_asset = 4; string cash = 5; string market_value = 6; double drawdown = 7; }
+message BacktestOrder { uint64 id = 1; uint64 task_id = 2; string symbol = 3; string signal_date = 4; string trade_date = 5; string side = 6; int64 requested_quantity = 7; int64 filled_quantity = 8; int64 cancelled_quantity = 9; string base_price = 10; string fill_price = 11; string status = 12; string reason_code = 13; string reason = 14; string signal_reason = 15; }
+message BacktestTask { uint64 id = 1; string task_no = 2; uint64 user_id = 3; string symbol = 4; string strategy_code = 5; string start_date = 6; string end_date = 7; string initial_cash = 8; string fee_rate = 9; string slippage_rate = 10; string status = 11; string error_message = 12; string created_at = 13; string data_source = 14; string data_mode = 15; string params_json = 16; string adjust = 17; string engine_version = 18; string execution_model = 19; string quality_status = 20; string config_json = 21; }
+
+message RunBacktestReq { uint64 user_id = 1; string symbol = 2; string strategy_code = 3; string start_date = 4; string end_date = 5; string initial_cash = 6; string fee_rate = 7; string slippage_rate = 8; string params_json = 9; string adjust = 10; string min_commission = 11; string stamp_duty_rate = 12; string transfer_fee_rate = 13; string max_volume_ratio = 14; string target_position_ratio = 15; int64 lot_size = 16; string tick_size = 17; }
+message RunBacktestResp { uint64 task_id = 1; string task_no = 2; string status = 3; BacktestResult result = 4; repeated BacktestTrade trades = 5; repeated EquityPoint equity_curve = 6; string disclaimer = 7; repeated BacktestOrder orders = 8; }
+message ListBacktestTasksReq { uint64 user_id = 1; string status = 2; int64 limit = 3; }
+message ListBacktestTasksResp { repeated BacktestTask items = 1; }
+message GetBacktestTaskReq { uint64 user_id = 1; uint64 task_id = 2; }
+message GetBacktestTaskResp { BacktestTask item = 1; }
+message GetBacktestResultReq { uint64 user_id = 1; uint64 task_id = 2; }
+message GetBacktestResultResp { BacktestResult item = 1; }
+message GetBacktestTradesReq { uint64 user_id = 1; uint64 task_id = 2; }
+message GetBacktestTradesResp { repeated BacktestTrade items = 1; }
+message GetBacktestOrdersReq { uint64 user_id = 1; uint64 task_id = 2; }
+message GetBacktestOrdersResp { repeated BacktestOrder items = 1; }
+message GetBacktestEquityCurveReq { uint64 user_id = 1; uint64 task_id = 2; }
+message GetBacktestEquityCurveResp { repeated EquityPoint items = 1; }
+message DeleteBacktestReq { uint64 user_id = 1; uint64 task_id = 2; }
+message DeleteBacktestsReq { uint64 user_id = 1; repeated uint64 task_ids = 2; string scope = 3; }
+message DeleteBacktestsResp { int64 affected = 1; bool already_deleted = 2; }
+
+service Backtest {
+  rpc RunBacktest(RunBacktestReq) returns (RunBacktestResp);
+  rpc ListBacktestTasks(ListBacktestTasksReq) returns (ListBacktestTasksResp);
+  rpc GetBacktestTask(GetBacktestTaskReq) returns (GetBacktestTaskResp);
+  rpc GetBacktestResult(GetBacktestResultReq) returns (GetBacktestResultResp);
+  rpc GetBacktestTrades(GetBacktestTradesReq) returns (GetBacktestTradesResp);
+  rpc GetBacktestOrders(GetBacktestOrdersReq) returns (GetBacktestOrdersResp);
+  rpc GetBacktestEquityCurve(GetBacktestEquityCurveReq) returns (GetBacktestEquityCurveResp);
+  rpc DeleteBacktest(DeleteBacktestReq) returns (DeleteBacktestsResp);
+  rpc DeleteBacktests(DeleteBacktestsReq) returns (DeleteBacktestsResp);
+}

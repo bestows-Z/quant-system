@@ -1,0 +1,27 @@
+Name: market-rpc.rpc
+ListenOn: 0.0.0.0:9002
+Timeout: 30000
+Etcd:
+  Hosts:
+    - etcd:2379
+  Key: market-rpc.rpc
+MySQL:
+  DSN: ${MYSQL_USER}:${MYSQL_PASSWORD}@tcp(${MYSQL_HOST}:${MYSQL_PORT})/${MYSQL_DATABASE}?charset=utf8mb4&parseTime=true&loc=Local
+CacheRedis:
+  Host: redis:6379
+  Type: node
+  Pass: ""
+RabbitMQ:
+  Url: amqp://guest:guest@rabbitmq:5672/
+  Exchange: quant.events
+QuantPython:
+  BaseURL: http://quant-python:8000
+  Timeout: 30s
+MarketCache:
+  RealtimeTTL: 5s
+  StockListTTL: 86400s
+  KlineTTL: 3600s
+  AllowStaleCache: true
+  StaleCacheMaxSeconds: 300
+AppLog:
+  Level: info

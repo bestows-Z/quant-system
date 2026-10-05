@@ -1,0 +1,15 @@
+fastapi==0.111.0
+uvicorn[standard]==0.30.1
+pydantic==1.10.17
+pandas==2.2.2
+numpy==1.26.4
+akshare>=1.18.64,<1.19
+efinance==0.5.3
+baostock==0.8.9
+APScheduler==3.10.4
+PyYAML==6.0.1
+pytest==8.2.2
+httpx==0.27.0
+requests>=2.32.0,<3
+certifi>=2024.7.4
+openpyxl==3.1.5

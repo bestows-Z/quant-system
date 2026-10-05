@@ -1,0 +1,13 @@
+Name: model-gateway-rpc.rpc
+ListenOn: 0.0.0.0:9013
+Timeout: 70000
+Etcd:
+  Hosts:
+    - etcd:2379
+  Key: model-gateway-rpc.rpc
+Middlewares:
+  Stat: false
+MySQL:
+  DSN: ${MYSQL_USER}:${MYSQL_PASSWORD}@tcp(${MYSQL_HOST}:${MYSQL_PORT})/${MYSQL_DATABASE}?charset=utf8mb4&parseTime=true&loc=Local
+Encryption:
+  Key: ${MODEL_ENCRYPTION_KEY}

@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+package feature;
+option go_package = "./feature";
+
+message Empty {}
+message RawReply { string json = 1; }
+message ScreenerReq {
+  string sort_by = 1;
+  string order = 2;
+  string industry = 3;
+  double min_change = 4;
+  double max_change = 5;
+  double min_amount = 6;
+  int32 limit = 7;
+}
+message CandidateReq {
+  string sort_by = 1;
+  string industry = 2;
+  double min_confidence = 3;
+  int32 limit = 4;
+  bool refresh = 5;
+  string symbol = 6;
+}
+message DragonTigerReq { string trade_date = 1; int32 limit = 2; }
+message SectorReq {
+  string code = 1;
+  string sort_by = 2;
+  string order = 3;
+  int32 limit = 4;
+}
+message SectorListReq { string type = 1; string sort_by = 2; string order = 3; }
+
+service FeatureService {
+  rpc MarketOverview(Empty) returns (RawReply);
+  rpc Sectors(SectorListReq) returns (RawReply);
+  rpc SectorDetail(SectorReq) returns (RawReply);
+  rpc SectorConstituents(SectorReq) returns (RawReply);
+  rpc SectorTimeshare(SectorReq) returns (RawReply);
+  rpc Screener(ScreenerReq) returns (RawReply);
+  rpc Candidates(CandidateReq) returns (RawReply);
+  rpc CandidateEvidence(CandidateReq) returns (RawReply);
+  rpc DragonTiger(DragonTigerReq) returns (RawReply);
+}

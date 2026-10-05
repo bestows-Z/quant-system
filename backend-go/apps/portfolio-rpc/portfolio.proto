@@ -1,0 +1,144 @@
+syntax = "proto3";
+
+package portfolio;
+
+option go_package = "./portfolio";
+
+message CreatePortfolioReq { uint64 user_id = 1; string name = 2; string description = 3; }
+message ListPortfoliosReq { uint64 user_id = 1; }
+message GetPortfolioReq { uint64 user_id = 1; uint64 portfolio_id = 2; }
+message DeletePortfolioReq { uint64 user_id = 1; uint64 portfolio_id = 2; }
+
+message Portfolio {
+  uint64 id = 1;
+  string name = 2;
+  string description = 3;
+  string base_currency = 4;
+  string status = 5;
+  uint32 version = 6;
+  string created_at = 7;
+  string updated_at = 8;
+}
+
+message PortfolioResp { Portfolio portfolio = 1; }
+message ListPortfoliosResp { repeated Portfolio items = 1; }
+message DeletePortfolioResp { bool deleted = 1; }
+
+message UpsertPositionReq {
+  uint64 user_id = 1;
+  uint64 portfolio_id = 2;
+  uint64 position_id = 3;
+  string symbol = 4;
+  string name = 5;
+  int64 quantity = 6;
+  int64 available_quantity = 7;
+  string avg_cost = 8;
+  string opened_on = 9;
+  string note = 10;
+  uint32 version = 11;
+}
+message DeletePositionReq { uint64 user_id = 1; uint64 portfolio_id = 2; uint64 position_id = 3; }
+message ListPositionsReq { uint64 user_id = 1; uint64 portfolio_id = 2; }
+
+message Position {
+  uint64 id = 1;
+  uint64 portfolio_id = 2;
+  string symbol = 3;
+  string name = 4;
+  int64 quantity = 5;
+  int64 available_quantity = 6;
+  string avg_cost = 7;
+  string opened_on = 8;
+  string note = 9;
+  uint32 version = 10;
+  string created_at = 11;
+  string updated_at = 12;
+}
+message PositionResp { Position position = 1; }
+message ListPositionsResp { repeated Position items = 1; }
+message DeletePositionResp { bool deleted = 1; }
+
+message PreviewImportReq {
+  uint64 user_id = 1;
+  uint64 portfolio_id = 2;
+  string file_name = 3;
+  bytes csv_content = 4;
+  string idempotency_key = 5;
+}
+message ImportRow {
+  uint32 row_number = 1;
+  string symbol = 2;
+  string name = 3;
+  int64 quantity = 4;
+  int64 available_quantity = 5;
+  string avg_cost = 6;
+  string opened_on = 7;
+  string note = 8;
+}
+message ImportError { uint32 row_number = 1; string field = 2; string message = 3; }
+message PreviewImportResp {
+  uint64 task_id = 1;
+  string file_hash = 2;
+  string status = 3;
+  uint32 total_rows = 4;
+  uint32 valid_rows = 5;
+  uint32 invalid_rows = 6;
+  repeated ImportRow rows = 7;
+  repeated ImportError errors = 8;
+}
+message ConfirmImportReq { uint64 user_id = 1; uint64 portfolio_id = 2; uint64 task_id = 3; }
+message ConfirmImportResp { uint64 task_id = 1; string status = 2; uint32 imported_rows = 3; bool idempotent_replay = 4; }
+
+message AnalyzePortfolioReq { uint64 user_id = 1; uint64 portfolio_id = 2; bool refresh = 3; }
+message PositionAnalysis {
+  uint64 position_id = 1;
+  string symbol = 2;
+  string name = 3;
+  int64 quantity = 4;
+  string avg_cost = 5;
+  string market_price = 6;
+  string cost_value = 7;
+  string market_value = 8;
+  string profit = 9;
+  string profit_rate = 10;
+  string weight = 11;
+  string industry = 12;
+  string risk_level = 13;
+  repeated string warnings = 14;
+}
+message IndustryExposure { string industry = 1; string market_value = 2; string weight = 3; }
+message PortfolioAnalysis {
+  uint64 portfolio_id = 1;
+  string analysis_version = 2;
+  string quote_time = 3;
+  string market_value = 4;
+  string cost_value = 5;
+  string total_profit = 6;
+  string total_profit_rate = 7;
+  string concentration = 8;
+  string volatility = 9;
+  string max_drawdown = 10;
+  string risk_level = 11;
+  string coverage_rate = 12;
+  string data_source = 13;
+  string data_mode = 14;
+  repeated PositionAnalysis positions = 15;
+  repeated IndustryExposure industry_exposures = 16;
+  repeated string warnings = 17;
+  string disclaimer = 18;
+  string advanced_json = 19;
+}
+message AnalyzePortfolioResp { PortfolioAnalysis analysis = 1; }
+
+service PortfolioService {
+  rpc CreatePortfolio(CreatePortfolioReq) returns (PortfolioResp);
+  rpc ListPortfolios(ListPortfoliosReq) returns (ListPortfoliosResp);
+  rpc GetPortfolio(GetPortfolioReq) returns (PortfolioResp);
+  rpc DeletePortfolio(DeletePortfolioReq) returns (DeletePortfolioResp);
+  rpc UpsertPosition(UpsertPositionReq) returns (PositionResp);
+  rpc DeletePosition(DeletePositionReq) returns (DeletePositionResp);
+  rpc ListPositions(ListPositionsReq) returns (ListPositionsResp);
+  rpc PreviewImport(PreviewImportReq) returns (PreviewImportResp);
+  rpc ConfirmImport(ConfirmImportReq) returns (ConfirmImportResp);
+  rpc AnalyzePortfolio(AnalyzePortfolioReq) returns (AnalyzePortfolioResp);
+}

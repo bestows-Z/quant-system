@@ -1,0 +1,5 @@
+export interface ModelProvider { code:string;display_name:string;default_base_url:string;api_style:string;enabled:boolean }
+export interface ModelConfig { id:number;provider_code:string;name:string;base_url:string;model:string;api_key_masked:string;temperature:number;timeout_seconds:number;max_tokens:number;context_window_tokens:number;enabled:boolean;is_default:boolean;last_test_status:string;last_test_message?:string;last_test_at?:string;created_at?:string;updated_at?:string }
+export interface ModelUsage { requests:number;success_requests:number;failed_requests:number;total_tokens:number;prompt_tokens:number;completion_tokens:number;average_latency_ms:number;p95_latency_ms:number;success_rate:number }
+export interface ModelUsageRecord { id:number;config_id:number;provider_code:string;model:string;request_type:string;prompt_tokens:number;completion_tokens:number;total_tokens:number;token_source:string;latency_ms:number;first_token_latency_ms:number;status:string;error_message?:string;trace_id?:string;report_id?:number;created_at:string }
+export interface ModelUsageRecords { items:ModelUsageRecord[];total:number }

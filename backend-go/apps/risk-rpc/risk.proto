@@ -1,0 +1,66 @@
+syntax = "proto3";
+
+package risk;
+
+option go_package = "./risk";
+
+message RiskItem {
+  uint64 id = 1;
+  uint64 user_id = 2;
+  uint64 account_id = 3;
+  string symbol = 4;
+  string risk_type = 5;
+  string risk_level = 6;
+  double score = 7;
+  string title = 8;
+  string description = 9;
+  string suggestion = 10;
+  string source = 11;
+  uint64 source_id = 12;
+  string raw_data_json = 13;
+  string status = 14;
+  string created_at = 15;
+}
+
+message AnalyzeStockRiskReq { uint64 user_id = 1; string symbol = 2; }
+message AnalyzeAccountRiskReq { uint64 user_id = 1; uint64 account_id = 2; }
+message AnalyzePositionRiskReq { uint64 user_id = 1; uint64 account_id = 2; string symbol = 3; }
+message AnalyzeBacktestRiskReq { uint64 user_id = 1; uint64 task_id = 2; }
+
+message RiskAnalysisResp {
+  double overall_score = 1;
+  string overall_risk_level = 2;
+  repeated RiskItem items = 3;
+  string disclaimer = 4;
+}
+
+message ListRiskRecordsReq {
+  uint64 user_id = 1;
+  uint64 account_id = 2;
+  string symbol = 3;
+  string risk_type = 4;
+  string risk_level = 5;
+  string status = 6;
+  int64 limit = 7;
+}
+message ListRiskRecordsResp { repeated RiskItem items = 1; }
+message GetRiskRecordReq { uint64 user_id = 1; uint64 id = 2; }
+message GetRiskRecordResp { RiskItem item = 1; }
+message ResolveRiskRecordReq { uint64 user_id = 1; uint64 id = 2; }
+message ResolveRiskRecordResp { RiskItem item = 1; }
+message IgnoreRiskRecordReq { uint64 user_id = 1; uint64 id = 2; }
+message IgnoreRiskRecordResp { RiskItem item = 1; }
+message DeleteRiskRecordsReq { uint64 user_id = 1; repeated uint64 ids = 2; }
+message DeleteRiskRecordsResp { uint64 deleted_count = 1; }
+
+service Risk {
+  rpc AnalyzeStockRisk(AnalyzeStockRiskReq) returns (RiskAnalysisResp);
+  rpc AnalyzeAccountRisk(AnalyzeAccountRiskReq) returns (RiskAnalysisResp);
+  rpc AnalyzePositionRisk(AnalyzePositionRiskReq) returns (RiskAnalysisResp);
+  rpc AnalyzeBacktestRisk(AnalyzeBacktestRiskReq) returns (RiskAnalysisResp);
+  rpc ListRiskRecords(ListRiskRecordsReq) returns (ListRiskRecordsResp);
+  rpc GetRiskRecord(GetRiskRecordReq) returns (GetRiskRecordResp);
+  rpc ResolveRiskRecord(ResolveRiskRecordReq) returns (ResolveRiskRecordResp);
+  rpc IgnoreRiskRecord(IgnoreRiskRecordReq) returns (IgnoreRiskRecordResp);
+  rpc DeleteRiskRecords(DeleteRiskRecordsReq) returns (DeleteRiskRecordsResp);
+}

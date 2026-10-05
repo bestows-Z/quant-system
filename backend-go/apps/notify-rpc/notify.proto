@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+package notify;
+
+option go_package = "./notify";
+
+message Notification {
+  uint64 id = 1;
+  uint64 user_id = 2;
+  string title = 3;
+  string content = 4;
+  string notify_type = 5;
+  string level = 6;
+  string source_type = 7;
+  string source_id = 8;
+  string link = 9;
+  string payload_json = 10;
+  bool is_read = 11;
+  string read_at = 12;
+  string created_at = 13;
+  string updated_at = 14;
+}
+
+message CreateNotificationReq { uint64 user_id = 1; string title = 2; string content = 3; string notify_type = 4; string level = 5; string source_type = 6; string source_id = 7; string link = 8; string payload_json = 9; }
+message CreateNotificationResp { Notification item = 1; }
+message ListNotificationsReq { uint64 user_id = 1; string notify_type = 2; string level = 3; bool unread_only = 4; int64 limit = 5; }
+message ListNotificationsResp { repeated Notification items = 1; }
+message CountUnreadReq { uint64 user_id = 1; }
+message CountUnreadResp { int64 count = 1; }
+message MarkReadReq { uint64 user_id = 1; uint64 id = 2; }
+message MarkReadResp { Notification item = 1; }
+message MarkAllReadReq { uint64 user_id = 1; }
+message MarkAllReadResp { int64 affected = 1; }
+message DeleteNotificationReq { uint64 user_id = 1; uint64 id = 2; string scope = 3; }
+message DeleteNotificationResp { bool ok = 1; int64 affected = 2; }
+
+service Notify {
+  rpc CreateNotification(CreateNotificationReq) returns (CreateNotificationResp);
+  rpc ListNotifications(ListNotificationsReq) returns (ListNotificationsResp);
+  rpc CountUnread(CountUnreadReq) returns (CountUnreadResp);
+  rpc MarkRead(MarkReadReq) returns (MarkReadResp);
+  rpc MarkAllRead(MarkAllReadReq) returns (MarkAllReadResp);
+  rpc DeleteNotification(DeleteNotificationReq) returns (DeleteNotificationResp);
+}

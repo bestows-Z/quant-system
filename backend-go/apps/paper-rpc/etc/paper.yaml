@@ -1,0 +1,29 @@
+Name: paper-rpc.rpc
+ListenOn: 0.0.0.0:9005
+Etcd:
+  Hosts:
+    - etcd:2379
+  Key: paper-rpc.rpc
+MySQL:
+  DSN: ${MYSQL_USER}:${MYSQL_PASSWORD}@tcp(${MYSQL_HOST}:${MYSQL_PORT})/${MYSQL_DATABASE}?charset=utf8mb4&parseTime=true&loc=Local
+CacheRedis:
+  Host: redis:6379
+  Type: node
+  Pass: ""
+RabbitMQ:
+  Url: amqp://guest:guest@rabbitmq:5672/
+  Exchange: quant.events
+MarketRpc:
+  Etcd:
+    Hosts:
+      - etcd:2379
+    Key: market-rpc.rpc
+FeeConfig:
+  BuyFeeRate: "0.0003"
+  SellFeeRate: "0.0003"
+  MinFee: "5"
+  StampDutyRate: "0.0005"
+SlippageConfig:
+  MarketOrderSlippageRate: "0.0005"
+AppLog:
+  Level: info

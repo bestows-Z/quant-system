@@ -1,0 +1,25 @@
+Name: rag-rpc.rpc
+ListenOn: 0.0.0.0:9008
+Etcd:
+  Hosts:
+    - etcd:2379
+  Key: rag-rpc.rpc
+MySQL:
+  DSN: ${MYSQL_USER}:${MYSQL_PASSWORD}@tcp(${MYSQL_HOST}:${MYSQL_PORT})/${MYSQL_DATABASE}?charset=utf8mb4&parseTime=true&loc=Local
+CacheRedis:
+  Host: redis:6379
+  Type: node
+  Pass: ""
+Qdrant:
+  Addr: http://qdrant:6333
+  Collection: quant_knowledge
+LLM:
+  Provider: local
+  ApiKey: ""
+  BaseUrl: ""
+  Model: extractive-rag-v1
+RabbitMQ:
+  Url: amqp://guest:guest@rabbitmq:5672/
+  Exchange: quant.events
+AppLog:
+  Level: info

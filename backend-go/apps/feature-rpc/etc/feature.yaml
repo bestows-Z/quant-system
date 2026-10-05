@@ -1,0 +1,8 @@
+Name: feature-rpc.rpc
+ListenOn: 0.0.0.0:9014
+Etcd:
+  Hosts:
+    - etcd:2379
+  Key: feature-rpc.rpc
+MySQL:
+  DSN: ${MYSQL_USER}:${MYSQL_PASSWORD}@tcp(${MYSQL_HOST}:${MYSQL_PORT})/${MYSQL_DATABASE}?charset=utf8mb4&parseTime=true&loc=Local

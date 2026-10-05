@@ -1,0 +1,974 @@
+CREATE DATABASE IF NOT EXISTS quant_system DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE quant_system;
+
+CREATE TABLE IF NOT EXISTS roles (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  name VARCHAR(64) NOT NULL,
+  code VARCHAR(64) NOT NULL,
+  description VARCHAR(255) DEFAULT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted_at DATETIME DEFAULT NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_roles_code (code),
+  KEY idx_roles_deleted_at (deleted_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS users (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  username VARCHAR(64) NOT NULL,
+  email VARCHAR(128) DEFAULT NULL,
+  password_hash VARCHAR(255) NOT NULL,
+  nickname VARCHAR(64) DEFAULT NULL,
+  status VARCHAR(32) NOT NULL DEFAULT 'ACTIVE',
+  last_login_at DATETIME DEFAULT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted_at DATETIME DEFAULT NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_users_username (username),
+  UNIQUE KEY uk_users_email (email),
+  KEY idx_users_status (status),
+  KEY idx_users_deleted_at (deleted_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS user_roles (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NOT NULL,
+  role_id BIGINT UNSIGNED NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_user_roles_user_role (user_id, role_id),
+  KEY idx_user_roles_role_id (role_id),
+  CONSTRAINT fk_user_roles_user FOREIGN KEY (user_id) REFERENCES users(id),
+  CONSTRAINT fk_user_roles_role FOREIGN KEY (role_id) REFERENCES roles(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS stocks (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  symbol VARCHAR(32) NOT NULL,
+  name VARCHAR(128) NOT NULL,
+  market VARCHAR(32) NOT NULL,
+  exchange VARCHAR(32) DEFAULT NULL,
+  industry VARCHAR(128) DEFAULT NULL,
+  area VARCHAR(128) DEFAULT NULL,
+  listing_date DATE DEFAULT NULL,
+  is_st BOOLEAN NOT NULL DEFAULT FALSE,
+  delisting_risk BOOLEAN NOT NULL DEFAULT FALSE,
+  status VARCHAR(32) NOT NULL DEFAULT 'ACTIVE',
+  source VARCHAR(64) DEFAULT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted_at DATETIME DEFAULT NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_stocks_symbol_market (symbol, market),
+  KEY idx_stocks_name (name),
+  KEY idx_stocks_industry (industry),
+  KEY idx_stocks_status (status),
+  KEY idx_stocks_deleted_at (deleted_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS stock_daily_bars (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  symbol VARCHAR(32) NOT NULL,
+  trade_date DATE NOT NULL,
+  open DECIMAL(18,4) NOT NULL,
+  high DECIMAL(18,4) NOT NULL,
+  low DECIMAL(18,4) NOT NULL,
+  close DECIMAL(18,4) NOT NULL,
+  pre_close DECIMAL(18,4) DEFAULT NULL,
+  volume BIGINT DEFAULT NULL,
+  amount DECIMAL(24,4) DEFAULT NULL,
+  turnover_rate DECIMAL(10,4) DEFAULT NULL,
+  change_pct DECIMAL(10,4) DEFAULT NULL,
+  amplitude DECIMAL(10,4) DEFAULT NULL,
+  source VARCHAR(64) DEFAULT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_daily_symbol_date (symbol, trade_date),
+  KEY idx_daily_trade_date (trade_date),
+  KEY idx_daily_symbol_date_desc (symbol, trade_date DESC)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS stock_minute_bars (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  symbol VARCHAR(32) NOT NULL,
+  period VARCHAR(16) NOT NULL,
+  trade_time DATETIME NOT NULL,
+  open DECIMAL(18,4) NOT NULL,
+  high DECIMAL(18,4) NOT NULL,
+  low DECIMAL(18,4) NOT NULL,
+  close DECIMAL(18,4) NOT NULL,
+  volume BIGINT DEFAULT NULL,
+  amount DECIMAL(24,4) DEFAULT NULL,
+  source VARCHAR(64) DEFAULT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_minute_symbol_period_time (symbol, period, trade_time),
+  KEY idx_minute_trade_time (trade_time),
+  KEY idx_minute_symbol_time_desc (symbol, trade_time DESC)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS realtime_quotes (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  symbol VARCHAR(32) NOT NULL,
+  name VARCHAR(128) DEFAULT NULL,
+  price DECIMAL(18,4) NOT NULL,
+  open DECIMAL(18,4) DEFAULT NULL,
+  high DECIMAL(18,4) DEFAULT NULL,
+  low DECIMAL(18,4) DEFAULT NULL,
+  pre_close DECIMAL(18,4) DEFAULT NULL,
+  volume BIGINT DEFAULT NULL,
+  amount DECIMAL(24,4) DEFAULT NULL,
+  change_pct DECIMAL(10,4) DEFAULT NULL,
+  turnover_rate DECIMAL(10,4) DEFAULT NULL,
+  quote_time DATETIME NOT NULL,
+  source VARCHAR(64) DEFAULT NULL,
+  data_mode VARCHAR(32) NOT NULL DEFAULT 'real',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_realtime_symbol (symbol),
+  KEY idx_realtime_quote_time (quote_time),
+  KEY idx_realtime_change_pct (change_pct)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS indicators (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  symbol VARCHAR(32) NOT NULL,
+  trade_date DATE NOT NULL,
+  indicator_type VARCHAR(32) NOT NULL,
+  values_json JSON NOT NULL,
+  source VARCHAR(64) DEFAULT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_indicators_symbol_type_date (symbol, indicator_type, trade_date),
+  KEY idx_indicators_symbol_date (symbol, trade_date)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS watchlists (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NOT NULL,
+  symbol VARCHAR(32) NOT NULL,
+  group_name VARCHAR(64) NOT NULL DEFAULT 'default',
+  remark VARCHAR(255) DEFAULT NULL,
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted_at DATETIME DEFAULT NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_watchlists_user_symbol_group (user_id, symbol, group_name),
+  KEY idx_watchlists_user_id (user_id),
+  KEY idx_watchlists_deleted_at (deleted_at),
+  CONSTRAINT fk_watchlists_user FOREIGN KEY (user_id) REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS strategies (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED DEFAULT NULL,
+  name VARCHAR(128) NOT NULL,
+  code VARCHAR(64) NOT NULL,
+  strategy_type VARCHAR(64) NOT NULL,
+  description VARCHAR(512) DEFAULT NULL,
+  params_json JSON DEFAULT NULL,
+  status VARCHAR(32) NOT NULL DEFAULT 'ENABLED',
+  is_system BOOLEAN NOT NULL DEFAULT FALSE,
+  enabled BOOLEAN NOT NULL DEFAULT TRUE,
+  created_by BIGINT UNSIGNED DEFAULT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted_at DATETIME DEFAULT NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_strategies_code (code),
+  KEY idx_strategies_user_id (user_id),
+  KEY idx_strategies_code (code),
+  KEY idx_strategies_status (status),
+  KEY idx_strategies_enabled (enabled),
+  KEY idx_strategies_deleted_at (deleted_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS strategy_signals (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  run_id BIGINT UNSIGNED DEFAULT NULL,
+  user_id BIGINT UNSIGNED DEFAULT NULL,
+  strategy_id BIGINT UNSIGNED NOT NULL,
+  strategy_code VARCHAR(64) NOT NULL DEFAULT '',
+  symbol VARCHAR(32) NOT NULL,
+  name VARCHAR(128) DEFAULT NULL,
+  `signal` VARCHAR(16) NOT NULL,
+  signal_type VARCHAR(16) NOT NULL DEFAULT 'HOLD',
+  signal_strength VARCHAR(32) DEFAULT NULL,
+  score DECIMAL(10,4) NOT NULL DEFAULT 0,
+  reason VARCHAR(1024) DEFAULT NULL,
+  risk_level VARCHAR(16) NOT NULL DEFAULT 'MEDIUM',
+  trigger_price DECIMAL(18,4) DEFAULT NULL,
+  trigger_time DATETIME NOT NULL,
+  raw_json JSON DEFAULT NULL,
+  raw_data_json JSON DEFAULT NULL,
+  disclaimer VARCHAR(255) NOT NULL DEFAULT '仅供研究，不构成投资建议',
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_strategy_signals_user_id (user_id),
+  KEY idx_strategy_signals_symbol (symbol),
+  KEY idx_strategy_signals_strategy_code (strategy_code),
+  KEY idx_strategy_signals_signal_type (signal_type),
+  KEY idx_strategy_signals_trigger_time (trigger_time),
+  KEY idx_signals_symbol_time (symbol, trigger_time DESC),
+  KEY idx_signals_strategy_time (strategy_id, trigger_time DESC),
+  KEY idx_signals_signal (`signal`),
+  CONSTRAINT fk_strategy_signals_strategy FOREIGN KEY (strategy_id) REFERENCES strategies(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS backtest_tasks (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  task_no VARCHAR(64) NOT NULL,
+  user_id BIGINT UNSIGNED NOT NULL,
+  strategy_id BIGINT UNSIGNED DEFAULT NULL,
+  symbol VARCHAR(32) NOT NULL,
+  strategy_code VARCHAR(64) NOT NULL DEFAULT '',
+  start_date DATE NOT NULL,
+  end_date DATE NOT NULL,
+  initial_cash DECIMAL(20,4) NOT NULL,
+  fee_rate DECIMAL(10,6) NOT NULL DEFAULT 0.0003,
+  commission_rate DECIMAL(10,6) NOT NULL DEFAULT 0.0003,
+  slippage_rate DECIMAL(10,6) NOT NULL DEFAULT 0.0001,
+  status VARCHAR(32) NOT NULL DEFAULT 'PENDING',
+  error_message VARCHAR(1024) DEFAULT NULL,
+  params_json JSON DEFAULT NULL,
+  started_at DATETIME DEFAULT NULL,
+  finished_at DATETIME DEFAULT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_backtest_tasks_task_no (task_no),
+  KEY idx_backtest_tasks_user_id (user_id),
+  KEY idx_backtest_tasks_symbol (symbol),
+  KEY idx_backtest_tasks_strategy_code (strategy_code),
+  KEY idx_backtest_tasks_status (status),
+  KEY idx_backtest_user_status (user_id, status),
+  KEY idx_backtest_symbol_date (symbol, start_date, end_date),
+  CONSTRAINT fk_backtest_tasks_user FOREIGN KEY (user_id) REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS backtest_results (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  task_id BIGINT UNSIGNED NOT NULL,
+  user_id BIGINT UNSIGNED DEFAULT NULL,
+  symbol VARCHAR(32) DEFAULT NULL,
+  strategy_code VARCHAR(64) DEFAULT NULL,
+  final_equity DECIMAL(20,4) NOT NULL,
+  final_asset DECIMAL(20,4) NOT NULL DEFAULT 0,
+  total_return DECIMAL(12,6) NOT NULL,
+  annual_return DECIMAL(12,6) DEFAULT NULL,
+  max_drawdown DECIMAL(12,6) DEFAULT NULL,
+  win_rate DECIMAL(12,6) DEFAULT NULL,
+  profit_loss_ratio DECIMAL(12,6) DEFAULT NULL,
+  trade_count INT NOT NULL DEFAULT 0,
+  total_trades INT NOT NULL DEFAULT 0,
+  winning_trades INT NOT NULL DEFAULT 0,
+  losing_trades INT NOT NULL DEFAULT 0,
+  result_json JSON DEFAULT NULL,
+  raw_result_json JSON DEFAULT NULL,
+  disclaimer VARCHAR(255) NOT NULL DEFAULT '仅供研究，不构成投资建议',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_backtest_results_task (task_id),
+  CONSTRAINT fk_backtest_results_task FOREIGN KEY (task_id) REFERENCES backtest_tasks(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS backtest_trades (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  task_id BIGINT UNSIGNED NOT NULL,
+  user_id BIGINT UNSIGNED DEFAULT NULL,
+  symbol VARCHAR(32) NOT NULL,
+  side VARCHAR(16) NOT NULL,
+  price DECIMAL(18,4) NOT NULL,
+  quantity INT NOT NULL,
+  amount DECIMAL(20,4) NOT NULL,
+  fee DECIMAL(20,4) NOT NULL DEFAULT 0,
+  profit DECIMAL(20,4) NOT NULL DEFAULT 0,
+  trade_time DATETIME NOT NULL,
+  reason VARCHAR(512) DEFAULT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_backtest_trades_task_id (task_id),
+  KEY idx_backtest_trades_user_id (user_id),
+  KEY idx_backtest_trades_symbol (symbol),
+  KEY idx_backtest_trades_task_time (task_id, trade_time),
+  KEY idx_backtest_trades_symbol_time (symbol, trade_time),
+  CONSTRAINT fk_backtest_trades_task FOREIGN KEY (task_id) REFERENCES backtest_tasks(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS backtest_equity_curve (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  task_id BIGINT UNSIGNED NOT NULL,
+  user_id BIGINT UNSIGNED DEFAULT NULL,
+  trade_date DATE NOT NULL,
+  equity DECIMAL(20,4) NOT NULL,
+  total_asset DECIMAL(20,4) NOT NULL DEFAULT 0,
+  cash DECIMAL(20,4) NOT NULL,
+  position_value DECIMAL(20,4) NOT NULL DEFAULT 0,
+  drawdown DECIMAL(12,6) DEFAULT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_backtest_curve_task_date (task_id, trade_date),
+  UNIQUE KEY uk_backtest_equity_task_trade_date (task_id, trade_date),
+  CONSTRAINT fk_backtest_curve_task FOREIGN KEY (task_id) REFERENCES backtest_tasks(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS paper_accounts (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NOT NULL,
+  name VARCHAR(128) NOT NULL,
+  initial_cash DECIMAL(20,4) NOT NULL,
+  available_cash DECIMAL(20,4) NOT NULL,
+  frozen_cash DECIMAL(20,4) NOT NULL DEFAULT 0,
+  total_assets DECIMAL(20,4) NOT NULL,
+  total_profit DECIMAL(20,4) NOT NULL DEFAULT 0,
+  status VARCHAR(32) NOT NULL DEFAULT 'ACTIVE',
+  commission_rate DECIMAL(10,6) NOT NULL DEFAULT 0.0003,
+  slippage_rate DECIMAL(10,6) NOT NULL DEFAULT 0.0001,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted_at DATETIME DEFAULT NULL,
+  PRIMARY KEY (id),
+  KEY idx_paper_accounts_user_status (user_id, status),
+  KEY idx_paper_accounts_deleted_at (deleted_at),
+  CONSTRAINT fk_paper_accounts_user FOREIGN KEY (user_id) REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS paper_positions (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  account_id BIGINT UNSIGNED NOT NULL,
+  user_id BIGINT UNSIGNED NOT NULL,
+  symbol VARCHAR(32) NOT NULL,
+  name VARCHAR(128) DEFAULT NULL,
+  quantity INT NOT NULL DEFAULT 0,
+  available_quantity INT NOT NULL DEFAULT 0,
+  frozen_quantity INT NOT NULL DEFAULT 0,
+  today_buy_quantity INT NOT NULL DEFAULT 0,
+  last_buy_date DATE DEFAULT NULL,
+  avg_cost DECIMAL(18,4) NOT NULL DEFAULT 0,
+  market_price DECIMAL(18,4) NOT NULL DEFAULT 0,
+  market_value DECIMAL(20,4) NOT NULL DEFAULT 0,
+  unrealized_pnl DECIMAL(20,4) NOT NULL DEFAULT 0,
+  realized_pnl DECIMAL(20,4) NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_paper_positions_account_symbol (account_id, symbol),
+  KEY idx_paper_positions_user_id (user_id),
+  KEY idx_paper_positions_account_id (account_id),
+  KEY idx_paper_positions_symbol (symbol),
+  CONSTRAINT fk_paper_positions_account FOREIGN KEY (account_id) REFERENCES paper_accounts(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS paper_orders (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  order_no VARCHAR(64) NOT NULL,
+  client_order_id VARCHAR(128) NOT NULL,
+  account_id BIGINT UNSIGNED NOT NULL,
+  user_id BIGINT UNSIGNED NOT NULL,
+  symbol VARCHAR(32) NOT NULL,
+  name VARCHAR(128) DEFAULT NULL,
+  side VARCHAR(16) NOT NULL,
+  order_type VARCHAR(16) NOT NULL,
+  price DECIMAL(18,4) DEFAULT NULL,
+  quantity INT NOT NULL,
+  filled_quantity INT NOT NULL DEFAULT 0,
+  avg_fill_price DECIMAL(18,4) DEFAULT NULL,
+  status VARCHAR(32) NOT NULL DEFAULT 'PENDING',
+  amount DECIMAL(20,4) NOT NULL DEFAULT 0,
+  fee DECIMAL(20,4) NOT NULL DEFAULT 0,
+  slippage DECIMAL(20,4) NOT NULL DEFAULT 0,
+  remark VARCHAR(512) DEFAULT NULL,
+  submitted_at DATETIME NOT NULL,
+  filled_at DATETIME DEFAULT NULL,
+  canceled_at DATETIME DEFAULT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_paper_orders_order_no (order_no),
+  UNIQUE KEY uk_paper_orders_user_client_order (user_id, client_order_id),
+  KEY idx_paper_orders_account_status (account_id, status),
+  KEY idx_paper_orders_user_time (user_id, submitted_at DESC),
+  KEY idx_paper_orders_symbol_time (symbol, submitted_at DESC),
+  CONSTRAINT fk_paper_orders_account FOREIGN KEY (account_id) REFERENCES paper_accounts(id),
+  CONSTRAINT fk_paper_orders_user FOREIGN KEY (user_id) REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS paper_trades (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  trade_no VARCHAR(64) NOT NULL,
+  account_id BIGINT UNSIGNED NOT NULL,
+  order_id BIGINT UNSIGNED NOT NULL,
+  order_no VARCHAR(64) NOT NULL,
+  user_id BIGINT UNSIGNED NOT NULL,
+  symbol VARCHAR(32) NOT NULL,
+  name VARCHAR(128) DEFAULT NULL,
+  side VARCHAR(16) NOT NULL,
+  price DECIMAL(18,4) NOT NULL,
+  quantity INT NOT NULL,
+  amount DECIMAL(20,4) NOT NULL,
+  fee DECIMAL(20,4) NOT NULL DEFAULT 0,
+  stamp_duty DECIMAL(20,4) NOT NULL DEFAULT 0,
+  slippage DECIMAL(20,4) NOT NULL DEFAULT 0,
+  trade_time DATETIME NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_paper_trades_trade_no (trade_no),
+  KEY idx_paper_trades_account_time (account_id, trade_time DESC),
+  KEY idx_paper_trades_order (order_id),
+  KEY idx_paper_trades_user_id (user_id),
+  KEY idx_paper_trades_symbol_time (symbol, trade_time DESC),
+  CONSTRAINT fk_paper_trades_account FOREIGN KEY (account_id) REFERENCES paper_accounts(id),
+  CONSTRAINT fk_paper_trades_order FOREIGN KEY (order_id) REFERENCES paper_orders(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS paper_equity_curve (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  account_id BIGINT UNSIGNED NOT NULL,
+  snapshot_time DATETIME NOT NULL,
+  total_assets DECIMAL(20,4) NOT NULL,
+  available_cash DECIMAL(20,4) NOT NULL,
+  position_value DECIMAL(20,4) NOT NULL DEFAULT 0,
+  total_profit DECIMAL(20,4) NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_paper_curve_account_time (account_id, snapshot_time),
+  CONSTRAINT fk_paper_curve_account FOREIGN KEY (account_id) REFERENCES paper_accounts(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS risk_records (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED DEFAULT NULL,
+  account_id BIGINT UNSIGNED DEFAULT NULL,
+  symbol VARCHAR(32) DEFAULT NULL,
+  risk_type VARCHAR(64) NOT NULL,
+  risk_level VARCHAR(16) NOT NULL,
+  score DECIMAL(10,4) NOT NULL DEFAULT 0,
+  title VARCHAR(255) NOT NULL DEFAULT '',
+  description VARCHAR(1024) NOT NULL DEFAULT '',
+  suggestion VARCHAR(1024) NOT NULL DEFAULT '',
+  message VARCHAR(1024) NOT NULL DEFAULT '',
+  source VARCHAR(64) NOT NULL DEFAULT 'risk-rpc',
+  source_id BIGINT UNSIGNED DEFAULT NULL,
+  raw_json JSON DEFAULT NULL,
+  raw_data_json JSON DEFAULT NULL,
+  status VARCHAR(32) NOT NULL DEFAULT 'OPEN',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_risk_user_id (user_id),
+  KEY idx_risk_account_id (account_id),
+  KEY idx_risk_symbol (symbol),
+  KEY idx_risk_type (risk_type),
+  KEY idx_risk_status (status),
+  KEY idx_risk_created_at (created_at),
+  KEY idx_risk_user_time (user_id, created_at DESC),
+  KEY idx_risk_account_time (account_id, created_at DESC),
+  KEY idx_risk_symbol_time (symbol, created_at DESC),
+  KEY idx_risk_level (risk_level)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS collect_tasks (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  task_type VARCHAR(64) NOT NULL,
+  source VARCHAR(64) NOT NULL,
+  target VARCHAR(128) DEFAULT NULL,
+  status VARCHAR(32) NOT NULL DEFAULT 'PENDING',
+  progress INT NOT NULL DEFAULT 0,
+  message VARCHAR(1024) DEFAULT NULL,
+  started_at DATETIME DEFAULT NULL,
+  finished_at DATETIME DEFAULT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_collect_tasks_status (status),
+  KEY idx_collect_tasks_type_time (task_type, created_at DESC)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS system_configs (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  config_key VARCHAR(128) NOT NULL,
+  config_value TEXT NOT NULL,
+  value_type VARCHAR(32) NOT NULL DEFAULT 'string',
+  description VARCHAR(512) DEFAULT NULL,
+  editable BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_system_configs_key (config_key)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO roles (name, code, description)
+VALUES ('管理员', 'admin', '系统管理员角色预留'), ('普通用户', 'user', '普通用户角色预留')
+ON DUPLICATE KEY UPDATE name = VALUES(name), description = VALUES(description);
+
+INSERT INTO strategies (name, code, strategy_type, description, params_json, enabled)
+VALUES
+  ('均线金叉死叉策略', 'ma_cross', 'TECHNICAL', '基于短期均线和长期均线交叉生成策略信号，仅供研究，不构成投资建议', JSON_OBJECT('short_window', 5, 'long_window', 20), TRUE),
+  ('MACD 金叉死叉策略', 'macd_cross', 'TECHNICAL', '基于 MACD DIF 与 DEA 交叉生成策略信号，仅供研究，不构成投资建议', JSON_OBJECT('fast', 12, 'slow', 26, 'signal', 9), TRUE),
+  ('RSI 超买超卖策略', 'rsi_reversal', 'TECHNICAL', '基于 RSI 阈值生成超买超卖分析信号，仅供研究，不构成投资建议', JSON_OBJECT('period', 14, 'low', 30, 'high', 70), TRUE),
+  ('BOLL 突破策略', 'boll_breakout', 'TECHNICAL', '基于布林带突破生成策略信号，仅供研究，不构成投资建议', JSON_OBJECT('period', 20, 'std', 2), TRUE),
+  ('放量突破策略', 'volume_breakout', 'TECHNICAL', '基于成交量和价格突破生成策略信号，仅供研究，不构成投资建议', JSON_OBJECT('volume_window', 20, 'volume_multiplier', 1.8), TRUE),
+  ('简单趋势评分策略', 'trend_score', 'SCORING', '综合均线、动量和波动率生成趋势评分，仅供研究，不构成投资建议', JSON_OBJECT('ma_windows', JSON_ARRAY(5, 10, 20), 'rsi_period', 14), TRUE)
+ON DUPLICATE KEY UPDATE
+  name = VALUES(name),
+  description = VALUES(description),
+  params_json = VALUES(params_json),
+  enabled = VALUES(enabled);
+
+INSERT INTO system_configs (config_key, config_value, value_type, description, editable)
+VALUES
+  ('data.mode', 'real', 'string', '数据模式：real 或 mock。mock 模式必须在界面明确标注。', TRUE),
+  ('paper.commission_rate', '0.0003', 'decimal', '模拟交易默认手续费率', TRUE),
+  ('paper.slippage_rate', '0.0001', 'decimal', '模拟交易默认滑点率', TRUE),
+  ('risk.max_single_position_ratio', '0.3', 'decimal', '单票仓位占比风险阈值', TRUE),
+  ('notice.disclaimer', '仅供研究，不构成投资建议', 'string', '系统统一免责声明', FALSE)
+ON DUPLICATE KEY UPDATE
+  config_value = VALUES(config_value),
+  description = VALUES(description),
+  editable = VALUES(editable);
+
+CREATE TABLE IF NOT EXISTS permissions (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  name VARCHAR(128) NOT NULL,
+  code VARCHAR(128) NOT NULL,
+  resource VARCHAR(128) NOT NULL,
+  action VARCHAR(64) NOT NULL,
+  description VARCHAR(255) DEFAULT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted_at DATETIME DEFAULT NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_permissions_code (code),
+  KEY idx_permissions_resource_action (resource, action),
+  KEY idx_permissions_deleted_at (deleted_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS role_permissions (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  role_id BIGINT UNSIGNED NOT NULL,
+  permission_id BIGINT UNSIGNED NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_role_permissions_role_permission (role_id, permission_id),
+  KEY idx_role_permissions_permission_id (permission_id),
+  CONSTRAINT fk_role_permissions_role FOREIGN KEY (role_id) REFERENCES roles(id),
+  CONSTRAINT fk_role_permissions_permission FOREIGN KEY (permission_id) REFERENCES permissions(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS strategy_runs (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  run_no VARCHAR(64) NOT NULL,
+  strategy_id BIGINT UNSIGNED NOT NULL,
+  user_id BIGINT UNSIGNED DEFAULT NULL,
+  strategy_code VARCHAR(64) NOT NULL DEFAULT '',
+  symbol VARCHAR(32) DEFAULT NULL,
+  status VARCHAR(32) NOT NULL DEFAULT 'PENDING',
+  params_json JSON DEFAULT NULL,
+  result_json JSON DEFAULT NULL,
+  error_message VARCHAR(1024) DEFAULT NULL,
+  started_at DATETIME DEFAULT NULL,
+  finished_at DATETIME DEFAULT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_strategy_runs_run_no (run_no),
+  KEY idx_strategy_runs_user_id (user_id),
+  KEY idx_strategy_runs_strategy_code (strategy_code),
+  KEY idx_strategy_runs_symbol (symbol),
+  KEY idx_strategy_runs_status (status),
+  KEY idx_strategy_runs_strategy_time (strategy_id, created_at DESC),
+  KEY idx_strategy_runs_user_status (user_id, status),
+  KEY idx_strategy_runs_symbol_time (symbol, created_at DESC)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS paper_account_snapshots (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  account_id BIGINT UNSIGNED NOT NULL,
+  user_id BIGINT UNSIGNED NOT NULL,
+  snapshot_time DATETIME NOT NULL,
+  total_assets DECIMAL(20,4) NOT NULL,
+  available_cash DECIMAL(20,4) NOT NULL,
+  frozen_cash DECIMAL(20,4) NOT NULL DEFAULT 0,
+  position_value DECIMAL(20,4) NOT NULL DEFAULT 0,
+  total_profit DECIMAL(20,4) NOT NULL DEFAULT 0,
+  positions_json JSON DEFAULT NULL,
+  raw_json JSON DEFAULT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_paper_snapshots_account_time (account_id, snapshot_time),
+  KEY idx_paper_snapshots_account (account_id),
+  CONSTRAINT fk_paper_snapshots_account FOREIGN KEY (account_id) REFERENCES paper_accounts(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS risk_rules (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  rule_code VARCHAR(128) NOT NULL,
+  rule_name VARCHAR(128) NOT NULL,
+  name VARCHAR(128) NOT NULL DEFAULT '',
+  code VARCHAR(128) NOT NULL DEFAULT '',
+  risk_type VARCHAR(64) NOT NULL,
+  risk_level VARCHAR(16) NOT NULL DEFAULT 'MEDIUM',
+  description VARCHAR(1024) NOT NULL DEFAULT '',
+  threshold_json JSON DEFAULT NULL,
+  params_json JSON DEFAULT NULL,
+  status VARCHAR(32) NOT NULL DEFAULT 'ENABLED',
+  is_system BOOLEAN NOT NULL DEFAULT TRUE,
+  enabled BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted_at DATETIME DEFAULT NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_risk_rules_rule_code (rule_code),
+  UNIQUE KEY uk_risk_rules_code (code),
+  KEY idx_risk_rules_risk_type (risk_type),
+  KEY idx_risk_rules_status (status),
+  KEY idx_risk_rules_type_enabled (risk_type, enabled),
+  KEY idx_risk_rules_deleted_at (deleted_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS knowledge_bases (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED DEFAULT NULL,
+  name VARCHAR(128) NOT NULL,
+  description VARCHAR(512) DEFAULT NULL,
+  visibility VARCHAR(32) NOT NULL DEFAULT 'PRIVATE',
+  embedding_provider VARCHAR(64) NOT NULL DEFAULT 'mock',
+  vector_store VARCHAR(64) NOT NULL DEFAULT 'qdrant',
+  collection_name VARCHAR(128) NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted_at DATETIME DEFAULT NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_knowledge_bases_collection (collection_name),
+  KEY idx_knowledge_bases_user (user_id),
+  KEY idx_knowledge_bases_deleted_at (deleted_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS rag_documents (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  knowledge_base_id BIGINT UNSIGNED NOT NULL,
+  user_id BIGINT UNSIGNED DEFAULT NULL,
+  title VARCHAR(255) NOT NULL,
+  doc_type VARCHAR(64) NOT NULL,
+  source_url VARCHAR(1024) DEFAULT NULL,
+  storage_path VARCHAR(1024) DEFAULT NULL,
+  status VARCHAR(32) NOT NULL DEFAULT 'UPLOADED',
+  metadata_json JSON DEFAULT NULL,
+  error_message VARCHAR(1024) DEFAULT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted_at DATETIME DEFAULT NULL,
+  PRIMARY KEY (id),
+  KEY idx_rag_documents_kb_status (knowledge_base_id, status),
+  KEY idx_rag_documents_user_time (user_id, created_at DESC),
+  KEY idx_rag_documents_deleted_at (deleted_at),
+  CONSTRAINT fk_rag_documents_kb FOREIGN KEY (knowledge_base_id) REFERENCES knowledge_bases(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS rag_chunks (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  document_id BIGINT UNSIGNED NOT NULL,
+  knowledge_base_id BIGINT UNSIGNED NOT NULL,
+  chunk_index INT NOT NULL,
+  content MEDIUMTEXT NOT NULL,
+  token_count INT NOT NULL DEFAULT 0,
+  metadata_json JSON DEFAULT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_rag_chunks_doc_index (document_id, chunk_index),
+  KEY idx_rag_chunks_kb (knowledge_base_id),
+  CONSTRAINT fk_rag_chunks_document FOREIGN KEY (document_id) REFERENCES rag_documents(id),
+  CONSTRAINT fk_rag_chunks_kb FOREIGN KEY (knowledge_base_id) REFERENCES knowledge_bases(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS rag_embeddings (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  chunk_id BIGINT UNSIGNED NOT NULL,
+  knowledge_base_id BIGINT UNSIGNED NOT NULL,
+  provider VARCHAR(64) NOT NULL DEFAULT 'mock',
+  model VARCHAR(128) NOT NULL DEFAULT 'mock-embedding',
+  dimension INT NOT NULL DEFAULT 0,
+  vector_id VARCHAR(128) DEFAULT NULL,
+  vector_json JSON DEFAULT NULL,
+  status VARCHAR(32) NOT NULL DEFAULT 'PENDING',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_rag_embeddings_chunk_provider (chunk_id, provider, model),
+  KEY idx_rag_embeddings_kb_status (knowledge_base_id, status),
+  CONSTRAINT fk_rag_embeddings_chunk FOREIGN KEY (chunk_id) REFERENCES rag_chunks(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS rag_retrieval_logs (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  knowledge_base_id BIGINT UNSIGNED DEFAULT NULL,
+  user_id BIGINT UNSIGNED DEFAULT NULL,
+  query_text TEXT NOT NULL,
+  top_k INT NOT NULL DEFAULT 5,
+  provider VARCHAR(64) NOT NULL DEFAULT 'mock',
+  results_json JSON DEFAULT NULL,
+  latency_ms INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_rag_retrieval_user_time (user_id, created_at DESC),
+  KEY idx_rag_retrieval_kb_time (knowledge_base_id, created_at DESC)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS rag_qa_logs (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  knowledge_base_id BIGINT UNSIGNED DEFAULT NULL,
+  user_id BIGINT UNSIGNED DEFAULT NULL,
+  question TEXT NOT NULL,
+  answer MEDIUMTEXT NOT NULL,
+  references_json JSON DEFAULT NULL,
+  llm_provider VARCHAR(64) NOT NULL DEFAULT 'mock',
+  model VARCHAR(128) NOT NULL DEFAULT 'mock-llm',
+  latency_ms INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_rag_qa_user_time (user_id, created_at DESC),
+  KEY idx_rag_qa_kb_time (knowledge_base_id, created_at DESC)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS agent_tasks (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  task_no VARCHAR(64) NOT NULL,
+  user_id BIGINT UNSIGNED DEFAULT NULL,
+  task_type VARCHAR(64) NOT NULL,
+  symbol VARCHAR(32) DEFAULT NULL,
+  title VARCHAR(255) DEFAULT NULL,
+  question TEXT DEFAULT NULL,
+  status VARCHAR(32) NOT NULL DEFAULT 'PENDING',
+  input_json JSON DEFAULT NULL,
+  output_json JSON DEFAULT NULL,
+  risk_level VARCHAR(16) DEFAULT NULL,
+  confidence DECIMAL(10,4) DEFAULT NULL,
+  summary TEXT DEFAULT NULL,
+  error_message VARCHAR(1024) DEFAULT NULL,
+  started_at DATETIME DEFAULT NULL,
+  finished_at DATETIME DEFAULT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_agent_tasks_task_no (task_no),
+  KEY idx_agent_tasks_user_id (user_id),
+  KEY idx_agent_tasks_symbol (symbol),
+  KEY idx_agent_tasks_status (status),
+  KEY idx_agent_tasks_task_type (task_type),
+  KEY idx_agent_tasks_user_status (user_id, status),
+  KEY idx_agent_tasks_symbol_time (symbol, created_at DESC),
+  KEY idx_agent_tasks_type_time (task_type, created_at DESC)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS agent_messages (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  task_id BIGINT UNSIGNED NOT NULL,
+  user_id BIGINT UNSIGNED DEFAULT NULL,
+  role VARCHAR(32) NOT NULL,
+  content MEDIUMTEXT NOT NULL,
+  metadata_json JSON DEFAULT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_agent_messages_task_id (task_id),
+  KEY idx_agent_messages_user_id (user_id),
+  KEY idx_agent_messages_task (task_id, created_at),
+  CONSTRAINT fk_agent_messages_task FOREIGN KEY (task_id) REFERENCES agent_tasks(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS agent_tool_calls (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  task_id BIGINT UNSIGNED NOT NULL,
+  user_id BIGINT UNSIGNED DEFAULT NULL,
+  tool_name VARCHAR(128) NOT NULL,
+  input_json JSON DEFAULT NULL,
+  output_json JSON DEFAULT NULL,
+  status VARCHAR(32) NOT NULL DEFAULT 'SUCCESS',
+  latency_ms INT NOT NULL DEFAULT 0,
+  error_message VARCHAR(1024) DEFAULT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_agent_tool_calls_task_id (task_id),
+  KEY idx_agent_tool_calls_user_id (user_id),
+  KEY idx_agent_tool_calls_tool_name (tool_name),
+  KEY idx_agent_tool_calls_task (task_id, created_at),
+  KEY idx_agent_tool_calls_tool (tool_name),
+  CONSTRAINT fk_agent_tool_calls_task FOREIGN KEY (task_id) REFERENCES agent_tasks(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS agent_analysis_reports (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  task_id BIGINT UNSIGNED NOT NULL,
+  user_id BIGINT UNSIGNED DEFAULT NULL,
+  symbol VARCHAR(32) DEFAULT NULL,
+  report_type VARCHAR(64) NOT NULL,
+  summary TEXT NOT NULL,
+  market_analysis TEXT DEFAULT NULL,
+  technical_analysis TEXT DEFAULT NULL,
+  strategy_analysis TEXT DEFAULT NULL,
+  rag_analysis TEXT DEFAULT NULL,
+  paper_trading_analysis TEXT DEFAULT NULL,
+  risk_analysis TEXT DEFAULT NULL,
+  final_view TEXT DEFAULT NULL,
+  report_json JSON NOT NULL,
+  risk_level VARCHAR(16) NOT NULL DEFAULT 'MEDIUM',
+  confidence DECIMAL(10,4) NOT NULL DEFAULT 0,
+  references_json JSON DEFAULT NULL,
+  raw_context_json JSON DEFAULT NULL,
+  raw_llm_output MEDIUMTEXT DEFAULT NULL,
+  disclaimer VARCHAR(255) NOT NULL DEFAULT '仅供研究，不构成投资建议',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_agent_reports_task (task_id),
+  KEY idx_agent_reports_task_id (task_id),
+  KEY idx_agent_reports_user_id (user_id),
+  KEY idx_agent_reports_symbol (symbol),
+  KEY idx_agent_reports_report_type (report_type),
+  KEY idx_agent_reports_user_time (user_id, created_at DESC),
+  KEY idx_agent_reports_symbol_time (symbol, created_at DESC),
+  CONSTRAINT fk_agent_reports_task FOREIGN KEY (task_id) REFERENCES agent_tasks(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS system_tasks (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  task_no VARCHAR(64) NOT NULL DEFAULT '',
+  user_id BIGINT UNSIGNED DEFAULT NULL,
+  task_type VARCHAR(64) NOT NULL,
+  source_type VARCHAR(128) DEFAULT NULL,
+  source_id VARCHAR(128) DEFAULT NULL,
+  title VARCHAR(255) NOT NULL DEFAULT '',
+  biz_id VARCHAR(128) DEFAULT NULL,
+  status VARCHAR(32) NOT NULL DEFAULT 'PENDING',
+  progress INT NOT NULL DEFAULT 0,
+  payload_json JSON DEFAULT NULL,
+  params_json JSON DEFAULT NULL,
+  result_json JSON DEFAULT NULL,
+  error_message VARCHAR(1024) DEFAULT NULL,
+  retry_count INT NOT NULL DEFAULT 0,
+  started_at DATETIME DEFAULT NULL,
+  finished_at DATETIME DEFAULT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_system_tasks_task_no (task_no),
+  KEY idx_system_tasks_user_id (user_id),
+  KEY idx_system_tasks_task_type (task_type),
+  KEY idx_system_tasks_status (status),
+  KEY idx_system_tasks_source (source_type, source_id),
+  KEY idx_system_tasks_type_status (task_type, status),
+  KEY idx_system_tasks_biz (biz_id),
+  KEY idx_system_tasks_time (created_at DESC)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS task_logs (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  task_id BIGINT UNSIGNED NOT NULL,
+  task_no VARCHAR(64) DEFAULT NULL,
+  level VARCHAR(16) NOT NULL DEFAULT 'INFO',
+  message TEXT NOT NULL,
+  detail_json JSON DEFAULT NULL,
+  context_json JSON DEFAULT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_task_logs_task_id (task_id),
+  KEY idx_task_logs_task_no (task_no),
+  KEY idx_task_logs_created_at (created_at),
+  KEY idx_task_logs_task_time (task_id, created_at),
+  CONSTRAINT fk_task_logs_task FOREIGN KEY (task_id) REFERENCES system_tasks(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS notifications (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NOT NULL,
+  title VARCHAR(255) NOT NULL,
+  content TEXT NOT NULL,
+  notify_type VARCHAR(64) NOT NULL,
+  level VARCHAR(16) NOT NULL DEFAULT 'INFO',
+  source_type VARCHAR(128) DEFAULT NULL,
+  source_id VARCHAR(128) DEFAULT NULL,
+  link VARCHAR(512) DEFAULT NULL,
+  payload_json JSON DEFAULT NULL,
+  is_read BOOLEAN NOT NULL DEFAULT FALSE,
+  read_at DATETIME DEFAULT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted_at DATETIME DEFAULT NULL,
+  PRIMARY KEY (id),
+  KEY idx_notifications_user_id (user_id),
+  KEY idx_notifications_type (notify_type),
+  KEY idx_notifications_level (level),
+  KEY idx_notifications_is_read (is_read),
+  KEY idx_notifications_created_at (created_at),
+  KEY idx_notifications_user_read (user_id, read_at),
+  KEY idx_notifications_user_time (user_id, created_at DESC),
+  KEY idx_notifications_deleted_at (deleted_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS notification_events (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  notification_id BIGINT UNSIGNED DEFAULT NULL,
+  event_id VARCHAR(128) NOT NULL DEFAULT '',
+  event_type VARCHAR(128) NOT NULL,
+  user_id BIGINT UNSIGNED DEFAULT NULL,
+  source_type VARCHAR(128) DEFAULT NULL,
+  source_id VARCHAR(128) DEFAULT NULL,
+  trace_id VARCHAR(64) DEFAULT NULL,
+  payload_json JSON DEFAULT NULL,
+  handled BOOLEAN NOT NULL DEFAULT FALSE,
+  error_message VARCHAR(1024) DEFAULT NULL,
+  pushed BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_notification_events_event_id (event_id),
+  KEY idx_notification_events_event_type (event_type),
+  KEY idx_notification_events_user_id (user_id),
+  KEY idx_notification_events_handled (handled),
+  KEY idx_notification_events_type_time (event_type, created_at DESC),
+  KEY idx_notification_events_notification (notification_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS datasource_status (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  source VARCHAR(64) NOT NULL,
+  service_name VARCHAR(128) NOT NULL,
+  status VARCHAR(32) NOT NULL DEFAULT 'UNKNOWN',
+  latency_ms INT NOT NULL DEFAULT 0,
+  last_success_at DATETIME DEFAULT NULL,
+  last_error_at DATETIME DEFAULT NULL,
+  error_message VARCHAR(1024) DEFAULT NULL,
+  metadata_json JSON DEFAULT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_datasource_status_source_service (source, service_name),
+  KEY idx_datasource_status_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS audit_logs (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED DEFAULT NULL,
+  action VARCHAR(128) NOT NULL,
+  resource VARCHAR(128) NOT NULL,
+  resource_id VARCHAR(128) DEFAULT NULL,
+  trace_id VARCHAR(64) DEFAULT NULL,
+  ip VARCHAR(64) DEFAULT NULL,
+  user_agent VARCHAR(512) DEFAULT NULL,
+  request_json JSON DEFAULT NULL,
+  result VARCHAR(32) NOT NULL DEFAULT 'SUCCESS',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_audit_logs_user_time (user_id, created_at DESC),
+  KEY idx_audit_logs_action_time (action, created_at DESC),
+  KEY idx_audit_logs_trace (trace_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

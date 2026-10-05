@@ -1,0 +1,68 @@
+Name: agent-rpc.rpc
+ListenOn: 0.0.0.0:9009
+Timeout: 90000
+Etcd:
+  Hosts:
+    - etcd:2379
+  Key: agent-rpc.rpc
+MySQL:
+  DSN: ${MYSQL_USER}:${MYSQL_PASSWORD}@tcp(${MYSQL_HOST}:${MYSQL_PORT})/${MYSQL_DATABASE}?charset=utf8mb4&parseTime=true&loc=Local
+CacheRedis:
+  Host: redis:6379
+  Type: node
+  Pass: ""
+RabbitMQ:
+  Url: amqp://guest:guest@rabbitmq:5672/
+  Exchange: quant.events
+MarketRpc:
+  Timeout: 10000
+  Etcd:
+    Hosts:
+      - etcd:2379
+    Key: market-rpc.rpc
+PaperRpc:
+  Timeout: 10000
+  Etcd:
+    Hosts:
+      - etcd:2379
+    Key: paper-rpc.rpc
+RagRpc:
+  Timeout: 10000
+  Etcd:
+    Hosts:
+      - etcd:2379
+    Key: rag-rpc.rpc
+StrategyRpc:
+  Timeout: 10000
+  Etcd:
+    Hosts:
+      - etcd:2379
+    Key: strategy-rpc.rpc
+BacktestRpc:
+  Timeout: 10000
+  Etcd:
+    Hosts:
+      - etcd:2379
+    Key: backtest-rpc.rpc
+RiskRpc:
+  Timeout: 10000
+  Etcd:
+    Hosts:
+      - etcd:2379
+    Key: risk-rpc.rpc
+ModelGatewayRpc:
+  Timeout: 70000
+  Etcd:
+    Hosts:
+      - etcd:2379
+    Key: model-gateway-rpc.rpc
+  Middlewares:
+    Duration: false
+LLM:
+  Provider: ${LLM_PROVIDER}
+  ApiKey: ${LLM_API_KEY}
+  BaseUrl: ${LLM_BASE_URL}
+  Model: ${LLM_MODEL}
+  Timeout: 30s
+AppLog:
+  Level: info

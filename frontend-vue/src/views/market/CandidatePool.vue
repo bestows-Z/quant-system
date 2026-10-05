@@ -1,0 +1,21 @@
+<template>
+  <PageContainer title="智能研究候选池" description="基于真实量价、趋势、板块和风险因子的可解释评分">
+    <template #actions><el-select v-model="sortBy" style="width:150px" @change="load(false)"><el-option label="综合评分" value="total"/><el-option label="技术面" value="technical"/><el-option label="资金面" value="capital"/><el-option label="低风险优先" value="risk"/></el-select><el-button :loading="loading" @click="load(false)">刷新列表</el-button><el-button type="primary" plain :loading="loading" @click="load(true)">手动重算</el-button></template>
+    <el-alert :title="snapshotMessage" type="warning" show-icon :closable="false" class="notice"/>
+    <section class="candidate-list" v-loading="loading">
+      <article v-for="item in items" :key="item.symbol" class="candidate-row">
+        <div class="identity"><el-link type="primary" @click="$router.push(`/market/stocks/${item.symbol}`)"><strong>{{item.name}}</strong></el-link><span>{{item.symbol}} · {{item.industry}}</span><PriceChange :value="item.change_percent" percent-mode/></div>
+        <div class="score-main"><span>综合评分</span><strong>{{item.total_score}}</strong><el-progress :percentage="item.total_score" :show-text="false"/></div>
+        <div class="factor-grid"><div><span>技术</span><b>{{item.technical_score}}</b></div><div><span>资金</span><b>{{item.capital_score}}</b></div><div><span>情绪</span><b>{{item.sentiment_score}}</b></div><div><span>板块</span><b>{{item.sector_score}}</b></div><div><span>风险</span><b>{{item.risk_score}}</b></div></div>
+        <div class="evidence"><p><b>入选依据：</b>{{item.reasons.join('；')}}</p><p v-if="item.negative_factors.length" class="risk-copy"><b>不利因素：</b>{{item.negative_factors.join('；')}}</p><small>数据置信度 {{percent(item.confidence)}} · {{item.factor_version}}</small></div>
+        <div class="actions"><el-button @click="$router.push(`/market/stocks/${item.symbol}`)">查看分析</el-button><el-button type="primary" plain @click="$router.push(`/agent?symbol=${item.symbol}`)">智能体解读</el-button></div>
+      </article>
+      <el-empty v-if="!loading&&!items.length" description="行情或历史K线覆盖不足，当前没有可解释候选"/>
+    </section><DisclaimerAlert/>
+  </PageContainer>
+</template>
+<script setup lang="ts">
+import{computed,onMounted,ref}from'vue';import PageContainer from'@/components/common/PageContainer.vue';import DisclaimerAlert from'@/components/common/DisclaimerAlert.vue';import PriceChange from'@/components/common/PriceChange.vue';import{featureApi}from'@/api/feature';import{percent}from'@/utils/format';import type{CandidateResult,CandidateStock}from'@/types/feature'
+const items=ref<CandidateStock[]>([]),meta=ref<CandidateResult>({items:[],count:0}),loading=ref(false),sortBy=ref('total');const load=async(refresh=false)=>{loading.value=true;try{const data=await featureApi.candidateResult({sort_by:sortBy.value,limit:30,refresh});items.value=data.items||[];meta.value=data}finally{loading.value=false}};const snapshotMessage=computed(()=>meta.value.snapshot_mode==='CLOSE_SNAPSHOT'?`当前展示收盘候选快照，生成时间 ${meta.value.snapshot_time||'--'}。候选排序仅供研究，不构成投资建议。`:meta.value.snapshot_mode==='REFRESHED'?'已按当前数据库行情手动重算并保存新快照。候选排序仅供研究。':'尚无收盘快照，当前使用可用行情临时计算；收盘后系统会自动固化。');onMounted(()=>load(false))
+</script>
+<style scoped>.notice{margin-bottom:16px}.candidate-list{display:grid;gap:12px}.candidate-row{display:grid;grid-template-columns:150px 130px minmax(260px,1fr) minmax(280px,1.4fr) auto;gap:18px;align-items:center;padding:16px;background:#fff;border:1px solid var(--qs-border);border-radius:8px}.identity{display:grid;gap:5px}.identity span,.score-main span,.factor-grid span,.evidence small{color:var(--qs-muted);font-size:12px}.score-main{display:grid;gap:6px}.score-main strong{font-size:26px}.factor-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}.factor-grid div{display:grid;gap:4px;text-align:center;padding:8px;background:#f6f8fb}.evidence p{margin:0 0 7px;line-height:1.55}.risk-copy{color:var(--qs-warning)}.actions{display:grid;gap:8px}@media(max-width:1280px){.candidate-row{grid-template-columns:150px 130px 1fr}.evidence{grid-column:1/3}.actions{grid-column:3;grid-row:2}}@media(max-width:720px){.candidate-row{grid-template-columns:1fr}.evidence,.actions{grid-column:auto;grid-row:auto}.factor-grid{grid-template-columns:repeat(5,minmax(52px,1fr));overflow-x:auto}.actions{grid-template-columns:1fr 1fr}}</style>

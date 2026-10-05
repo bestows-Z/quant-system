@@ -1,0 +1,518 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: quant-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_password}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-quant_system}
+      MYSQL_USER: ${MYSQL_USER:-quant}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-quant_password}
+      TZ: Asia/Shanghai
+    ports:
+      - "3306:3306"
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-time-zone=+08:00
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/001_init.sql:ro
+      - ../backend-go/migrations/002_portfolio_and_stock_analysis.sql:/docker-entrypoint-initdb.d/002_portfolio_and_stock_analysis.sql:ro
+      - ../backend-go/migrations/003_model_gateway.sql:/docker-entrypoint-initdb.d/003_model_gateway.sql:ro
+      - ../backend-go/migrations/004_portfolio_advanced_analysis.sql:/docker-entrypoint-initdb.d/004_portfolio_advanced_analysis.sql:ro
+      - ../backend-go/migrations/005_market_intelligence.sql:/docker-entrypoint-initdb.d/005_market_intelligence.sql:ro
+      - ../backend-go/migrations/006_runtime_query_indexes.sql:/docker-entrypoint-initdb.d/006_runtime_query_indexes.sql:ro
+      - ../backend-go/migrations/007_quote_snapshot_metrics.sql:/docker-entrypoint-initdb.d/007_quote_snapshot_metrics.sql:ro
+      - ../backend-go/migrations/008_agent_research_archive.sql:/docker-entrypoint-initdb.d/008_agent_research_archive.sql:ro
+      - ../backend-go/migrations/009_strategy_data_integrity.sql:/docker-entrypoint-initdb.d/009_strategy_data_integrity.sql:ro
+      - ../backend-go/migrations/010_depth_matching_and_auto_trader.sql:/docker-entrypoint-initdb.d/010_depth_matching_and_auto_trader.sql:ro
+      - ../backend-go/migrations/011_sector_realtime_research.sql:/docker-entrypoint-initdb.d/011_sector_realtime_research.sql:ro
+      - ../backend-go/migrations/012_rag_vector_cleanup.sql:/docker-entrypoint-initdb.d/012_rag_vector_cleanup.sql:ro
+      - ../backend-go/migrations/013_auto_strategy_governance.sql:/docker-entrypoint-initdb.d/013_auto_strategy_governance.sql:ro
+      - ../backend-go/migrations/014_research_governance_chat.sql:/docker-entrypoint-initdb.d/014_research_governance_chat.sql:ro
+      - ../backend-go/migrations/015_backtest_integrity_v2.sql:/docker-entrypoint-initdb.d/015_backtest_integrity_v2.sql:ro
+      - ../backend-go/migrations/016_auto_evaluation_methodology.sql:/docker-entrypoint-initdb.d/016_auto_evaluation_methodology.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - quant-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: quant-redis
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - quant-net
+
+  etcd:
+    image: registry.k8s.io/etcd:3.6.11-0
+    container_name: quant-etcd
+    command:
+      - etcd
+      - --name=etcd
+      - --data-dir=/etcd-data
+      - --listen-client-urls=http://0.0.0.0:2379
+      - --advertise-client-urls=http://etcd:2379
+      - --listen-peer-urls=http://0.0.0.0:2380
+      - --initial-advertise-peer-urls=http://etcd:2380
+      - --initial-cluster=etcd=http://etcd:2380
+      - --initial-cluster-token=quant-etcd
+      - --initial-cluster-state=new
+    ports:
+      - "2379:2379"
+    networks:
+      - quant-net
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: quant-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - quant-net
+
+  qdrant:
+    image: qdrant/qdrant:v1.9.2
+    container_name: quant-qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    networks:
+      - quant-net
+
+  quant-python:
+    build:
+      context: ../quant-python
+      dockerfile: Dockerfile
+    container_name: quant-python
+    env_file:
+      - ../.env
+    environment:
+      DATA_MODE: ${DATA_MODE:-real}
+      MOCK_MODE: ${MOCK_MODE:-false}
+      ENABLE_PROVIDER_FALLBACK: ${ENABLE_PROVIDER_FALLBACK:-true}
+      AKSHARE_ENABLED: ${AKSHARE_ENABLED:-true}
+      EFINANCE_ENABLED: ${EFINANCE_ENABLED:-true}
+      BAOSTOCK_ENABLED: ${BAOSTOCK_ENABLED:-true}
+      LIGHTWEIGHT_QUOTE_ENABLED: ${LIGHTWEIGHT_QUOTE_ENABLED:-true}
+      BOOTSTRAP_ENABLED: ${BOOTSTRAP_ENABLED:-true}
+      BOOTSTRAP_DATA_DIR: /app/data/bootstrap
+      MARKET_PROVIDER_TIMEOUT: ${MARKET_PROVIDER_TIMEOUT:-8}
+      MARKET_TOTAL_TIMEOUT: ${MARKET_TOTAL_TIMEOUT:-15}
+      DATA_SOURCE_CALL_TIMEOUT: ${DATA_SOURCE_CALL_TIMEOUT:-8}
+      MYSQL_HOST: mysql
+      REDIS_HOST: redis
+      TUSHARE_TOKEN: ${TUSHARE_TOKEN:-}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "127.0.0.1:${PYTHON_QUANT_PORT:-8000}:8000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    networks:
+      - quant-net
+
+  gateway-api:
+    image: golang:1.24-alpine
+    container_name: quant-gateway-api
+    working_dir: /workspace/backend-go
+    command: ["go", "run", "./apps/gateway-api/gateway.go", "-f", "./apps/gateway-api/etc/gateway-api.yaml"]
+    environment: &go-env
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-quant_system}
+      MYSQL_USER: ${MYSQL_USER:-quant}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-quant_password}
+      JWT_SECRET: ${JWT_SECRET:-quant-system-dev-secret}
+      GOPROXY: ${GOPROXY:-https://goproxy.cn,direct}
+      GOSUMDB: ${GOSUMDB:-sum.golang.google.cn}
+      LLM_PROVIDER: ${LLM_PROVIDER:-local-rules}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_BASE_URL: ${LLM_BASE_URL:-}
+      LLM_MODEL: ${LLM_MODEL:-quant-tool-synthesis-v1}
+    volumes:
+      - ../backend-go:/workspace/backend-go
+      - go_mod_cache:/go/pkg/mod
+      - go_build_cache:/root/.cache/go-build
+    ports:
+      - "${GO_BACKEND_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/api/system/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 40s
+    depends_on:
+      - etcd
+      - user-rpc
+      - market-rpc
+      - paper-rpc
+      - strategy-rpc
+      - backtest-rpc
+      - risk-rpc
+      - rag-rpc
+      - model-gateway-rpc
+      - agent-rpc
+      - task-rpc
+      - notify-rpc
+      - portfolio-rpc
+      - feature-rpc
+      - auto-trader-rpc
+    networks:
+      - quant-net
+
+  user-rpc:
+    image: golang:1.24-alpine
+    container_name: quant-user-rpc
+    working_dir: /workspace/backend-go
+    command: ["go", "run", "./apps/user-rpc/user.go", "-f", "./apps/user-rpc/etc/user-rpc.yaml"]
+    environment: *go-env
+    volumes:
+      - ../backend-go:/workspace/backend-go
+      - go_mod_cache:/go/pkg/mod
+      - go_build_cache:/root/.cache/go-build
+    depends_on:
+      - mysql
+      - redis
+      - etcd
+    networks:
+      - quant-net
+
+  market-rpc:
+    image: golang:1.24-alpine
+    container_name: quant-market-rpc
+    working_dir: /workspace/backend-go
+    command: ["go", "run", "./apps/market-rpc/market.go", "-f", "./apps/market-rpc/etc/market-rpc.yaml"]
+    environment: *go-env
+    volumes:
+      - ../backend-go:/workspace/backend-go
+      - go_mod_cache:/go/pkg/mod
+      - go_build_cache:/root/.cache/go-build
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      etcd:
+        condition: service_started
+      rabbitmq:
+        condition: service_started
+      quant-python:
+        condition: service_healthy
+    networks:
+      - quant-net
+
+  strategy-rpc:
+    image: golang:1.24-alpine
+    container_name: quant-strategy-rpc
+    working_dir: /workspace/backend-go
+    command: ["go", "run", "./apps/strategy-rpc/strategy.go", "-f", "./apps/strategy-rpc/etc/strategy-rpc.yaml"]
+    environment: *go-env
+    volumes:
+      - ../backend-go:/workspace/backend-go
+      - go_mod_cache:/go/pkg/mod
+      - go_build_cache:/root/.cache/go-build
+    depends_on:
+      - mysql
+      - redis
+      - etcd
+      - rabbitmq
+      - quant-python
+    networks:
+      - quant-net
+
+  backtest-rpc:
+    image: golang:1.24-alpine
+    container_name: quant-backtest-rpc
+    working_dir: /workspace/backend-go
+    command: ["go", "run", "./apps/backtest-rpc/backtest.go", "-f", "./apps/backtest-rpc/etc/backtest-rpc.yaml"]
+    environment: *go-env
+    volumes:
+      - ../backend-go:/workspace/backend-go
+      - go_mod_cache:/go/pkg/mod
+      - go_build_cache:/root/.cache/go-build
+    depends_on:
+      - mysql
+      - redis
+      - etcd
+      - rabbitmq
+      - quant-python
+    networks:
+      - quant-net
+
+  paper-rpc:
+    image: golang:1.24-alpine
+    container_name: quant-paper-rpc
+    working_dir: /workspace/backend-go
+    command: ["go", "run", "./apps/paper-rpc/paper.go", "-f", "./apps/paper-rpc/etc/paper-rpc.yaml"]
+    environment: *go-env
+    volumes:
+      - ../backend-go:/workspace/backend-go
+      - go_mod_cache:/go/pkg/mod
+      - go_build_cache:/root/.cache/go-build
+    depends_on:
+      - mysql
+      - redis
+      - etcd
+      - rabbitmq
+      - market-rpc
+    networks:
+      - quant-net
+
+  auto-trader-rpc:
+    image: golang:1.24-alpine
+    container_name: quant-auto-trader-rpc
+    working_dir: /workspace/backend-go
+    command: ["go", "run", "./apps/auto-trader-rpc/auto-trader.go", "-f", "./apps/auto-trader-rpc/etc/auto-trader.yaml"]
+    environment: *go-env
+    volumes:
+      - ../backend-go:/workspace/backend-go
+      - go_mod_cache:/go/pkg/mod
+      - go_build_cache:/root/.cache/go-build
+    depends_on:
+      - mysql
+      - etcd
+      - feature-rpc
+      - strategy-rpc
+      - risk-rpc
+      - paper-rpc
+      - market-rpc
+      - model-gateway-rpc
+      - backtest-rpc
+    networks:
+      - quant-net
+
+  portfolio-rpc:
+    image: golang:1.24-alpine
+    container_name: quant-portfolio-rpc
+    working_dir: /workspace/backend-go
+    command: ["go", "run", "./apps/portfolio-rpc/portfolio.go", "-f", "./apps/portfolio-rpc/etc/portfolio.yaml"]
+    environment: *go-env
+    volumes:
+      - ../backend-go:/workspace/backend-go
+      - go_mod_cache:/go/pkg/mod
+      - go_build_cache:/root/.cache/go-build
+    depends_on:
+      mysql:
+        condition: service_healthy
+      etcd:
+        condition: service_started
+      market-rpc:
+        condition: service_started
+    networks:
+      - quant-net
+
+  model-gateway-rpc:
+    image: golang:1.24-alpine
+    container_name: quant-model-gateway-rpc
+    working_dir: /workspace/backend-go
+    command: ["go", "run", "./apps/model-gateway-rpc/modelgateway.go", "-f", "./apps/model-gateway-rpc/etc/modelgateway.yaml"]
+    env_file:
+      - ../.env
+    environment: *go-env
+    volumes:
+      - ../backend-go:/workspace/backend-go
+      - go_mod_cache:/go/pkg/mod
+      - go_build_cache:/root/.cache/go-build
+    depends_on:
+      mysql:
+        condition: service_healthy
+      etcd:
+        condition: service_started
+    networks:
+      - quant-net
+
+  feature-rpc:
+    image: golang:1.24-alpine
+    container_name: quant-feature-rpc
+    working_dir: /workspace/backend-go
+    command: ["go", "run", "./apps/feature-rpc/feature.go", "-f", "./apps/feature-rpc/etc/feature.yaml"]
+    environment: *go-env
+    volumes:
+      - ../backend-go:/workspace/backend-go
+      - go_mod_cache:/go/pkg/mod
+      - go_build_cache:/root/.cache/go-build
+    depends_on:
+      mysql:
+        condition: service_healthy
+      etcd:
+        condition: service_started
+    networks:
+      - quant-net
+
+  risk-rpc:
+    image: golang:1.24-alpine
+    container_name: quant-risk-rpc
+    working_dir: /workspace/backend-go
+    command: ["go", "run", "./apps/risk-rpc/risk.go", "-f", "./apps/risk-rpc/etc/risk-rpc.yaml"]
+    environment: *go-env
+    volumes:
+      - ../backend-go:/workspace/backend-go
+      - go_mod_cache:/go/pkg/mod
+      - go_build_cache:/root/.cache/go-build
+    depends_on:
+      - mysql
+      - redis
+      - etcd
+      - rabbitmq
+      - market-rpc
+      - paper-rpc
+      - strategy-rpc
+      - backtest-rpc
+    networks:
+      - quant-net
+
+  rag-rpc:
+    image: golang:1.24-alpine
+    container_name: quant-rag-rpc
+    working_dir: /workspace/backend-go
+    command: ["go", "run", "./apps/rag-rpc/rag.go", "-f", "./apps/rag-rpc/etc/rag-rpc.yaml"]
+    environment: *go-env
+    volumes:
+      - ../backend-go:/workspace/backend-go
+      - go_mod_cache:/go/pkg/mod
+      - go_build_cache:/root/.cache/go-build
+    depends_on:
+      - mysql
+      - redis
+      - etcd
+      - qdrant
+      - rabbitmq
+    networks:
+      - quant-net
+
+  agent-rpc:
+    image: golang:1.24-alpine
+    container_name: quant-agent-rpc
+    working_dir: /workspace/backend-go
+    command: ["go", "run", "./apps/agent-rpc/agent.go", "-f", "./apps/agent-rpc/etc/agent-rpc.yaml"]
+    environment: *go-env
+    volumes:
+      - ../backend-go:/workspace/backend-go
+      - go_mod_cache:/go/pkg/mod
+      - go_build_cache:/root/.cache/go-build
+    depends_on:
+      - etcd
+      - market-rpc
+      - strategy-rpc
+      - backtest-rpc
+      - risk-rpc
+      - paper-rpc
+      - rag-rpc
+      - model-gateway-rpc
+      - rabbitmq
+    networks:
+      - quant-net
+
+  task-rpc:
+    image: golang:1.24-alpine
+    container_name: quant-task-rpc
+    working_dir: /workspace/backend-go
+    command: ["go", "run", "./apps/task-rpc/task.go", "-f", "./apps/task-rpc/etc/task-rpc.yaml"]
+    environment: *go-env
+    volumes:
+      - ../backend-go:/workspace/backend-go
+      - go_mod_cache:/go/pkg/mod
+      - go_build_cache:/root/.cache/go-build
+    depends_on:
+      - mysql
+      - redis
+      - etcd
+      - rabbitmq
+    networks:
+      - quant-net
+
+  notify-rpc:
+    image: golang:1.24-alpine
+    container_name: quant-notify-rpc
+    working_dir: /workspace/backend-go
+    command: ["go", "run", "./apps/notify-rpc/notify.go", "-f", "./apps/notify-rpc/etc/notify-rpc.yaml"]
+    environment: *go-env
+    volumes:
+      - ../backend-go:/workspace/backend-go
+      - go_mod_cache:/go/pkg/mod
+      - go_build_cache:/root/.cache/go-build
+    depends_on:
+      - mysql
+      - redis
+      - etcd
+      - rabbitmq
+    networks:
+      - quant-net
+
+  ws-api:
+    image: golang:1.24-alpine
+    container_name: quant-ws-api
+    working_dir: /workspace/backend-go
+    command: ["go", "run", "./apps/ws-api/ws.go", "-f", "./apps/ws-api/etc/ws-api.yaml"]
+    environment: *go-env
+    volumes:
+      - ../backend-go:/workspace/backend-go
+      - go_mod_cache:/go/pkg/mod
+      - go_build_cache:/root/.cache/go-build
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+      - etcd
+      - rabbitmq
+      - notify-rpc
+      - market-rpc
+      - agent-rpc
+    networks:
+      - quant-net
+
+  frontend-vue:
+    build:
+      context: ../frontend-vue
+      dockerfile: Dockerfile
+    container_name: quant-frontend-vue
+    ports:
+      - "${FRONTEND_PORT:-8088}:80"
+    depends_on:
+      gateway-api:
+        condition: service_healthy
+      ws-api:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    networks:
+      - quant-net
+
+volumes:
+  mysql_data:
+  redis_data:
+  qdrant_data:
+  go_mod_cache:
+  go_build_cache:
+
+networks:
+  quant-net:
+    driver: bridge

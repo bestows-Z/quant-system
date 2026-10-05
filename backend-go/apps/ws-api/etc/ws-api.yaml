@@ -1,0 +1,44 @@
+Name: ws-api
+Host: 0.0.0.0
+Port: 8081
+CpuThreshold: 0
+Middlewares:
+  Log: false
+  Shedding: false
+JWT:
+  Secret: ${JWT_SECRET}
+CacheRedis:
+  Host: redis:6379
+  Type: node
+  Pass: ""
+RabbitMQ:
+  Url: amqp://guest:guest@rabbitmq:5672/
+  Exchange: quant.events
+NotifyRpc:
+  Etcd:
+    Hosts:
+      - etcd:2379
+    Key: notify-rpc.rpc
+MarketRpc:
+  Timeout: 10000
+  Etcd:
+    Hosts:
+      - etcd:2379
+    Key: market-rpc.rpc
+PaperRpc:
+  Timeout: 10000
+  Etcd:
+    Hosts:
+      - etcd:2379
+    Key: paper-rpc.rpc
+AgentRpc:
+  Timeout: 90000
+  Etcd:
+    Hosts:
+      - etcd:2379
+    Key: agent-rpc.rpc
+Stream:
+  PollInterval: 1s
+  TimeshareInterval: 5s
+  IdleInterval: 1m
+  MaxConcurrency: 8

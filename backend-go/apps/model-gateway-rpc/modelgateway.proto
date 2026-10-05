@@ -1,0 +1,46 @@
+syntax = "proto3";
+package modelgateway;
+option go_package = "./modelgateway";
+
+message Empty {}
+message Provider { string code=1; string display_name=2; string default_base_url=3; string api_style=4; bool enabled=5; }
+message ListProvidersReq {}
+message ListProvidersResp { repeated Provider items=1; }
+message ModelConfig {
+  uint64 id=1; string provider_code=2; string name=3; string base_url=4; string model=5; string api_key_masked=6;
+  double temperature=7; uint32 timeout_seconds=8; uint32 max_tokens=9; bool enabled=10; bool is_default=11;
+  string last_test_status=12; string last_test_message=13; string last_test_at=14; string created_at=15; string updated_at=16;
+  uint32 context_window_tokens=17;
+}
+message SaveConfigReq { uint64 user_id=1; uint64 id=2; string provider_code=3; string name=4; string base_url=5; string model=6; string api_key=7; double temperature=8; uint32 timeout_seconds=9; uint32 max_tokens=10; bool enabled=11; uint32 context_window_tokens=12; }
+message ConfigReq { uint64 user_id=1; uint64 id=2; }
+message ListConfigsReq { uint64 user_id=1; }
+message ConfigResp { ModelConfig config=1; }
+message ListConfigsResp { repeated ModelConfig items=1; }
+message DeleteConfigResp { bool deleted=1; }
+message ActivateConfigResp { ModelConfig config=1; }
+message TestConfigResp { bool success=1; string message=2; int64 latency_ms=3; }
+message GenerateReq { uint64 user_id=1; string system_prompt=2; string prompt=3; string response_format=4; string request_type=5; }
+message GenerateResp { string content=1; string provider_code=2; string model=3; int64 latency_ms=4; uint32 prompt_tokens=5; uint32 completion_tokens=6; uint32 total_tokens=7; uint64 config_id=8; string token_source=9; uint64 usage_record_id=10; }
+message UsageReq { uint64 user_id=1; uint32 days=2; }
+message UsageSummary { uint64 requests=1; uint64 success_requests=2; uint64 failed_requests=3; uint64 total_tokens=4; int64 average_latency_ms=5; uint64 prompt_tokens=6; uint64 completion_tokens=7; int64 p95_latency_ms=8; double success_rate=9; }
+message UsageRecord {
+  uint64 id=1; uint64 config_id=2; string provider_code=3; string model=4; string request_type=5;
+  uint64 prompt_tokens=6; uint64 completion_tokens=7; uint64 total_tokens=8; string token_source=9;
+  int64 latency_ms=10; int64 first_token_latency_ms=11; string status=12; string error_message=13;
+  string trace_id=14; uint64 report_id=15; string created_at=16;
+}
+message ListUsageRecordsReq { uint64 user_id=1; uint32 days=2; string request_type=3; uint32 limit=4; uint32 offset=5; }
+message ListUsageRecordsResp { repeated UsageRecord items=1; uint64 total=2; }
+
+service ModelGatewayService {
+  rpc ListProviders(ListProvidersReq) returns (ListProvidersResp);
+  rpc SaveConfig(SaveConfigReq) returns (ConfigResp);
+  rpc ListConfigs(ListConfigsReq) returns (ListConfigsResp);
+  rpc DeleteConfig(ConfigReq) returns (DeleteConfigResp);
+  rpc ActivateConfig(ConfigReq) returns (ActivateConfigResp);
+  rpc TestConfig(ConfigReq) returns (TestConfigResp);
+  rpc Generate(GenerateReq) returns (GenerateResp);
+  rpc Usage(UsageReq) returns (UsageSummary);
+  rpc ListUsageRecords(ListUsageRecordsReq) returns (ListUsageRecordsResp);
+}

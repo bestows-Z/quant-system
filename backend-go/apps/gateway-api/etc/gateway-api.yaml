@@ -1,0 +1,126 @@
+Name: gateway-api
+Host: 0.0.0.0
+Port: 8080
+Timeout: 90000
+CpuThreshold: 0
+Middlewares:
+  Log: false
+  Shedding: false
+
+JWT:
+  Secret: ${JWT_SECRET}
+  ExpireHours: 72
+
+MySQL:
+  DSN: ${MYSQL_USER}:${MYSQL_PASSWORD}@tcp(${MYSQL_HOST}:${MYSQL_PORT})/${MYSQL_DATABASE}?charset=utf8mb4&parseTime=true&loc=Local
+
+CacheRedis:
+  Host: redis:6379
+  Type: node
+  Pass: ""
+
+RabbitMQ:
+  Url: amqp://guest:guest@rabbitmq:5672/
+  Exchange: quant.events
+
+Qdrant:
+  Addr: http://qdrant:6333
+  Collection: quant_knowledge
+
+QuantPython:
+  BaseURL: http://quant-python:8000
+  Timeout: 5s
+
+LLM:
+  Provider: mock
+  ApiKey: ""
+  BaseUrl: ""
+  Model: mock-llm
+
+RateLimit:
+  LoginPerMinute: 20
+  AgentPerMinute: 10
+  RagPerMinute: 10
+
+BizTimeout:
+  External: 5s
+  LLM: 30s
+
+UserRpc:
+  Etcd:
+    Hosts:
+      - etcd:2379
+    Key: user-rpc.rpc
+  Middlewares:
+    Duration: false
+MarketRpc:
+  Timeout: 30000
+  Etcd:
+    Hosts:
+      - etcd:2379
+    Key: market-rpc.rpc
+PaperRpc:
+  Etcd:
+    Hosts:
+      - etcd:2379
+    Key: paper-rpc.rpc
+RagRpc:
+  Etcd:
+    Hosts:
+      - etcd:2379
+    Key: rag-rpc.rpc
+AgentRpc:
+  Timeout: 90000
+  Etcd:
+    Hosts:
+      - etcd:2379
+    Key: agent-rpc.rpc
+StrategyRpc:
+  Etcd:
+    Hosts:
+      - etcd:2379
+    Key: strategy-rpc.rpc
+BacktestRpc:
+  Etcd:
+    Hosts:
+      - etcd:2379
+    Key: backtest-rpc.rpc
+RiskRpc:
+  Etcd:
+    Hosts:
+      - etcd:2379
+    Key: risk-rpc.rpc
+TaskRpc:
+  Etcd:
+    Hosts:
+      - etcd:2379
+    Key: task-rpc.rpc
+NotifyRpc:
+  Etcd:
+    Hosts:
+      - etcd:2379
+    Key: notify-rpc.rpc
+PortfolioRpc:
+  Etcd:
+    Hosts:
+      - etcd:2379
+    Key: portfolio-rpc.rpc
+ModelGatewayRpc:
+  Timeout: 70000
+  Etcd:
+    Hosts:
+      - etcd:2379
+    Key: model-gateway-rpc.rpc
+  Middlewares:
+    Duration: false
+FeatureRpc:
+  Etcd:
+    Hosts:
+      - etcd:2379
+    Key: feature-rpc.rpc
+AutoTraderRpc:
+  Timeout: 120000
+  Etcd:
+    Hosts:
+      - etcd:2379
+    Key: auto-trader-rpc.rpc

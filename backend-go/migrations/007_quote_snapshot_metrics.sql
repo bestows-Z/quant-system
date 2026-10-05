@@ -1,0 +1,5 @@
+ALTER TABLE realtime_quotes
+  ADD COLUMN volume_ratio DECIMAL(10,4) DEFAULT NULL AFTER amplitude,
+  ADD COLUMN pe_ratio DECIMAL(18,4) DEFAULT NULL AFTER volume_ratio,
+  ADD COLUMN limit_up DECIMAL(18,4) DEFAULT NULL AFTER pe_ratio,
+  ADD COLUMN limit_down DECIMAL(18,4) DEFAULT NULL AFTER limit_up;

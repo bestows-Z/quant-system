@@ -1,0 +1,426 @@
+services:
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_password}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-quant_system}
+      MYSQL_USER: ${MYSQL_USER:-quant}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-quant_password}
+      TZ: Asia/Shanghai
+    ports:
+      - "3306:3306"
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-time-zone=+08:00
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql/init.sql:/docker-entrypoint-initdb.d/001_init.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - quant-net
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - quant-net
+
+  etcd:
+    image: registry.k8s.io/etcd:3.6.11-0
+    command:
+      - etcd
+      - --name=etcd
+      - --data-dir=/etcd-data
+      - --listen-client-urls=http://0.0.0.0:2379
+      - --advertise-client-urls=http://etcd:2379
+      - --listen-peer-urls=http://0.0.0.0:2380
+      - --initial-advertise-peer-urls=http://etcd:2380
+      - --initial-cluster=etcd=http://etcd:2380
+      - --initial-cluster-token=quant-etcd
+      - --initial-cluster-state=new
+    ports:
+      - "2379:2379"
+    networks:
+      - quant-net
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - quant-net
+
+  qdrant:
+    image: qdrant/qdrant:v1.9.2
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    networks:
+      - quant-net
+
+  quant-python:
+    build:
+      context: ../../quant-python
+      dockerfile: Dockerfile
+    environment:
+      DATA_MODE: ${DATA_MODE:-mock}
+      MYSQL_HOST: mysql
+      REDIS_HOST: redis
+    ports:
+      - "8000:8000"
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - quant-net
+
+  gateway-api:
+    image: golang:1.24-alpine
+    working_dir: /workspace/backend-go
+    command: ["go", "run", "./apps/gateway-api/gateway.go", "-f", "./apps/gateway-api/etc/gateway-api.yaml"]
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-quant_system}
+      MYSQL_USER: ${MYSQL_USER:-quant}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-quant_password}
+      GOPROXY: ${GOPROXY:-https://goproxy.cn,direct}
+      GOSUMDB: ${GOSUMDB:-sum.golang.google.cn}
+      JWT_SECRET: ${JWT_SECRET:-quant-system-dev-secret}
+    volumes:
+      - ../:/workspace/backend-go
+      - go_mod_cache:/go/pkg/mod
+      - go_build_cache:/root/.cache/go-build
+    ports:
+      - "8080:8080"
+    depends_on:
+      - etcd
+      - user-rpc
+      - market-rpc
+      - strategy-rpc
+      - backtest-rpc
+      - risk-rpc
+      - paper-rpc
+      - rag-rpc
+      - agent-rpc
+      - task-rpc
+      - notify-rpc
+    networks:
+      - quant-net
+
+  user-rpc:
+    image: golang:1.24-alpine
+    working_dir: /workspace/backend-go
+    command: ["go", "run", "./apps/user-rpc/user.go", "-f", "./apps/user-rpc/etc/user-rpc.yaml"]
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-quant_system}
+      MYSQL_USER: ${MYSQL_USER:-quant}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-quant_password}
+      GOPROXY: ${GOPROXY:-https://goproxy.cn,direct}
+      GOSUMDB: ${GOSUMDB:-sum.golang.google.cn}
+      JWT_SECRET: ${JWT_SECRET:-quant-system-dev-secret}
+    volumes:
+      - ../:/workspace/backend-go
+      - go_mod_cache:/go/pkg/mod
+      - go_build_cache:/root/.cache/go-build
+    ports:
+      - "9001:9001"
+    depends_on:
+      - mysql
+      - redis
+      - etcd
+    networks:
+      - quant-net
+
+  market-rpc:
+    image: golang:1.24-alpine
+    working_dir: /workspace/backend-go
+    command: ["go", "run", "./apps/market-rpc/market.go", "-f", "./apps/market-rpc/etc/market-rpc.yaml"]
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-quant_system}
+      MYSQL_USER: ${MYSQL_USER:-quant}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-quant_password}
+      GOPROXY: ${GOPROXY:-https://goproxy.cn,direct}
+      GOSUMDB: ${GOSUMDB:-sum.golang.google.cn}
+    volumes:
+      - ../:/workspace/backend-go
+      - go_mod_cache:/go/pkg/mod
+      - go_build_cache:/root/.cache/go-build
+    ports:
+      - "9002:9002"
+    depends_on:
+      - mysql
+      - redis
+      - etcd
+      - quant-python
+    networks:
+      - quant-net
+
+  strategy-rpc:
+    image: golang:1.24-alpine
+    working_dir: /workspace/backend-go
+    command: ["go", "run", "./apps/strategy-rpc/strategy.go", "-f", "./apps/strategy-rpc/etc/strategy-rpc.yaml"]
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-quant_system}
+      MYSQL_USER: ${MYSQL_USER:-quant}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-quant_password}
+      GOPROXY: ${GOPROXY:-https://goproxy.cn,direct}
+      GOSUMDB: ${GOSUMDB:-sum.golang.google.cn}
+    volumes:
+      - ../:/workspace/backend-go
+      - go_mod_cache:/go/pkg/mod
+      - go_build_cache:/root/.cache/go-build
+    ports:
+      - "9003:9003"
+    depends_on:
+      - mysql
+      - redis
+      - etcd
+      - rabbitmq
+      - quant-python
+    networks:
+      - quant-net
+
+  backtest-rpc:
+    image: golang:1.24-alpine
+    working_dir: /workspace/backend-go
+    command: ["go", "run", "./apps/backtest-rpc/backtest.go", "-f", "./apps/backtest-rpc/etc/backtest-rpc.yaml"]
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-quant_system}
+      MYSQL_USER: ${MYSQL_USER:-quant}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-quant_password}
+      GOPROXY: ${GOPROXY:-https://goproxy.cn,direct}
+      GOSUMDB: ${GOSUMDB:-sum.golang.google.cn}
+    volumes:
+      - ../:/workspace/backend-go
+      - go_mod_cache:/go/pkg/mod
+      - go_build_cache:/root/.cache/go-build
+    ports:
+      - "9004:9004"
+    depends_on:
+      - mysql
+      - redis
+      - etcd
+      - rabbitmq
+      - quant-python
+    networks:
+      - quant-net
+
+  paper-rpc:
+    image: golang:1.24-alpine
+    working_dir: /workspace/backend-go
+    command: ["go", "run", "./apps/paper-rpc/paper.go", "-f", "./apps/paper-rpc/etc/paper-rpc.yaml"]
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-quant_system}
+      MYSQL_USER: ${MYSQL_USER:-quant}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-quant_password}
+      GOPROXY: ${GOPROXY:-https://goproxy.cn,direct}
+      GOSUMDB: ${GOSUMDB:-sum.golang.google.cn}
+    volumes:
+      - ../:/workspace/backend-go
+      - go_mod_cache:/go/pkg/mod
+      - go_build_cache:/root/.cache/go-build
+    ports:
+      - "9005:9005"
+    depends_on:
+      - mysql
+      - redis
+      - etcd
+      - rabbitmq
+      - market-rpc
+    networks:
+      - quant-net
+
+  risk-rpc:
+    image: golang:1.24-alpine
+    working_dir: /workspace/backend-go
+    command: ["go", "run", "./apps/risk-rpc/risk.go", "-f", "./apps/risk-rpc/etc/risk-rpc.yaml"]
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-quant_system}
+      MYSQL_USER: ${MYSQL_USER:-quant}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-quant_password}
+      GOPROXY: ${GOPROXY:-https://goproxy.cn,direct}
+      GOSUMDB: ${GOSUMDB:-sum.golang.google.cn}
+    volumes:
+      - ../:/workspace/backend-go
+      - go_mod_cache:/go/pkg/mod
+      - go_build_cache:/root/.cache/go-build
+    ports:
+      - "9006:9006"
+    depends_on:
+      - mysql
+      - redis
+      - etcd
+      - rabbitmq
+      - market-rpc
+      - paper-rpc
+      - strategy-rpc
+      - backtest-rpc
+    networks:
+      - quant-net
+
+  rag-rpc:
+    image: golang:1.24-alpine
+    working_dir: /workspace/backend-go
+    command: ["go", "run", "./apps/rag-rpc/rag.go", "-f", "./apps/rag-rpc/etc/rag-rpc.yaml"]
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-quant_system}
+      MYSQL_USER: ${MYSQL_USER:-quant}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-quant_password}
+      GOPROXY: ${GOPROXY:-https://goproxy.cn,direct}
+      GOSUMDB: ${GOSUMDB:-sum.golang.google.cn}
+    volumes:
+      - ../:/workspace/backend-go
+      - go_mod_cache:/go/pkg/mod
+      - go_build_cache:/root/.cache/go-build
+    ports:
+      - "9008:9008"
+    depends_on:
+      - mysql
+      - redis
+      - etcd
+      - qdrant
+      - rabbitmq
+    networks:
+      - quant-net
+
+  agent-rpc:
+    image: golang:1.24-alpine
+    working_dir: /workspace/backend-go
+    command: ["go", "run", "./apps/agent-rpc/agent.go", "-f", "./apps/agent-rpc/etc/agent-rpc.yaml"]
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-quant_system}
+      MYSQL_USER: ${MYSQL_USER:-quant}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-quant_password}
+      GOPROXY: ${GOPROXY:-https://goproxy.cn,direct}
+      GOSUMDB: ${GOSUMDB:-sum.golang.google.cn}
+    volumes:
+      - ../:/workspace/backend-go
+      - go_mod_cache:/go/pkg/mod
+      - go_build_cache:/root/.cache/go-build
+    ports:
+      - "9009:9009"
+    depends_on:
+      - etcd
+      - market-rpc
+      - strategy-rpc
+      - backtest-rpc
+      - risk-rpc
+      - paper-rpc
+      - rag-rpc
+      - rabbitmq
+    networks:
+      - quant-net
+
+  task-rpc:
+    image: golang:1.24-alpine
+    working_dir: /workspace/backend-go
+    command: ["go", "run", "./apps/task-rpc/task.go", "-f", "./apps/task-rpc/etc/task-rpc.yaml"]
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-quant_system}
+      MYSQL_USER: ${MYSQL_USER:-quant}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-quant_password}
+      GOPROXY: ${GOPROXY:-https://goproxy.cn,direct}
+      GOSUMDB: ${GOSUMDB:-sum.golang.google.cn}
+    volumes:
+      - ../:/workspace/backend-go
+      - go_mod_cache:/go/pkg/mod
+      - go_build_cache:/root/.cache/go-build
+    ports:
+      - "9010:9010"
+    depends_on:
+      - mysql
+      - redis
+      - etcd
+      - rabbitmq
+    networks:
+      - quant-net
+
+  notify-rpc:
+    image: golang:1.24-alpine
+    working_dir: /workspace/backend-go
+    command: ["go", "run", "./apps/notify-rpc/notify.go", "-f", "./apps/notify-rpc/etc/notify-rpc.yaml"]
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-quant_system}
+      MYSQL_USER: ${MYSQL_USER:-quant}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-quant_password}
+      GOPROXY: ${GOPROXY:-https://goproxy.cn,direct}
+      GOSUMDB: ${GOSUMDB:-sum.golang.google.cn}
+    volumes:
+      - ../:/workspace/backend-go
+      - go_mod_cache:/go/pkg/mod
+      - go_build_cache:/root/.cache/go-build
+    ports:
+      - "9011:9011"
+    depends_on:
+      - mysql
+      - redis
+      - etcd
+      - rabbitmq
+    networks:
+      - quant-net
+
+  ws-api:
+    image: golang:1.24-alpine
+    working_dir: /workspace/backend-go
+    command: ["go", "run", "./apps/ws-api/ws.go", "-f", "./apps/ws-api/etc/ws-api.yaml"]
+    environment:
+      JWT_SECRET: ${JWT_SECRET:-quant-system-dev-secret}
+      GOPROXY: ${GOPROXY:-https://goproxy.cn,direct}
+      GOSUMDB: ${GOSUMDB:-sum.golang.google.cn}
+    volumes:
+      - ../:/workspace/backend-go
+      - go_mod_cache:/go/pkg/mod
+      - go_build_cache:/root/.cache/go-build
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+      - etcd
+      - rabbitmq
+      - notify-rpc
+    networks:
+      - quant-net
+
+volumes:
+  mysql_data:
+  redis_data:
+  qdrant_data:
+  go_mod_cache:
+  go_build_cache:
+
+networks:
+  quant-net:
+    driver: bridge

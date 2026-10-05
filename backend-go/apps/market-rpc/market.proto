@@ -1,0 +1,104 @@
+syntax = "proto3";
+
+package market;
+
+option go_package = "./market";
+
+message Empty {}
+
+message StockListRequest {
+  string keyword = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+}
+
+message SymbolRequest {
+  string symbol = 1;
+}
+
+message RealtimeRequest {
+  repeated string symbols = 1;
+  int32 limit = 2;
+}
+
+message KlineRequest {
+  string symbol = 1;
+  string period = 2;
+  string start_date = 3;
+  string end_date = 4;
+  string adjust = 5;
+}
+
+message IndicatorRequest {
+  string symbol = 1;
+  string type = 2;
+  string period = 3;
+  string start_date = 4;
+  string end_date = 5;
+  string adjust = 6;
+}
+
+message ResearchRequest {
+  string symbol = 1;
+  string keyword = 2;
+  string trade_date = 3;
+  int32 limit = 4;
+}
+
+message RawReply {
+  string json = 1;
+}
+
+message WatchlistRequest {
+  uint64 user_id = 1;
+}
+
+message AddWatchlistRequest {
+  uint64 user_id = 1;
+  string symbol = 2;
+  string group_name = 3;
+  string remark = 4;
+}
+
+message DeleteWatchlistRequest {
+  uint64 user_id = 1;
+  uint64 id = 2;
+}
+
+message WatchlistItem {
+  uint64 id = 1;
+  uint64 user_id = 2;
+  string symbol = 3;
+  string group_name = 4;
+  string remark = 5;
+  string created_at = 6;
+}
+
+message WatchlistReply {
+  repeated WatchlistItem items = 1;
+}
+
+service Market {
+  rpc Stocks(StockListRequest) returns (RawReply);
+  rpc SearchStocks(StockListRequest) returns (RawReply);
+  rpc StockDetail(SymbolRequest) returns (RawReply);
+  rpc Realtime(RealtimeRequest) returns (RawReply);
+  rpc RealtimeBySymbol(SymbolRequest) returns (RawReply);
+  rpc Timeshare(SymbolRequest) returns (RawReply);
+  rpc OrderBook(SymbolRequest) returns (RawReply);
+  rpc Kline(KlineRequest) returns (RawReply);
+  rpc Indicator(IndicatorRequest) returns (RawReply);
+  rpc FullIndicator(IndicatorRequest) returns (RawReply);
+  rpc SupportResistance(KlineRequest) returns (RawReply);
+  rpc MarketIndices(Empty) returns (RawReply);
+  rpc MarketBreadth(Empty) returns (RawReply);
+  rpc CompanyProfile(SymbolRequest) returns (RawReply);
+  rpc Announcements(ResearchRequest) returns (RawReply);
+  rpc News(ResearchRequest) returns (RawReply);
+  rpc MoneyFlow(ResearchRequest) returns (RawReply);
+  rpc DragonTiger(ResearchRequest) returns (RawReply);
+  rpc DragonTigerSeats(ResearchRequest) returns (RawReply);
+  rpc Watchlists(WatchlistRequest) returns (WatchlistReply);
+  rpc AddWatchlist(AddWatchlistRequest) returns (WatchlistItem);
+  rpc DeleteWatchlist(DeleteWatchlistRequest) returns (Empty);
+}

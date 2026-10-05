@@ -1,0 +1,44 @@
+Name: auto-trader-rpc.rpc
+ListenOn: 0.0.0.0:9016
+Timeout: 120000
+Etcd:
+  Hosts:
+    - etcd:2379
+  Key: auto-trader-rpc.rpc
+MySQL:
+  DSN: ${MYSQL_USER}:${MYSQL_PASSWORD}@tcp(${MYSQL_HOST}:${MYSQL_PORT})/${MYSQL_DATABASE}?charset=utf8mb4&parseTime=true&loc=Local
+FeatureRpc:
+  Timeout: 30000
+  Etcd:
+    Hosts: [etcd:2379]
+    Key: feature-rpc.rpc
+StrategyRpc:
+  Timeout: 30000
+  Etcd:
+    Hosts: [etcd:2379]
+    Key: strategy-rpc.rpc
+RiskRpc:
+  Timeout: 30000
+  Etcd:
+    Hosts: [etcd:2379]
+    Key: risk-rpc.rpc
+PaperRpc:
+  Timeout: 30000
+  Etcd:
+    Hosts: [etcd:2379]
+    Key: paper-rpc.rpc
+MarketRpc:
+  Timeout: 30000
+  Etcd:
+    Hosts: [etcd:2379]
+    Key: market-rpc.rpc
+ModelGatewayRpc:
+  Timeout: 70000
+  Etcd:
+    Hosts: [etcd:2379]
+    Key: model-gateway-rpc.rpc
+BacktestRpc:
+  Timeout: 120000
+  Etcd:
+    Hosts: [etcd:2379]
+    Key: backtest-rpc.rpc

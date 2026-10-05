@@ -1,0 +1,22 @@
+Name: user-rpc.rpc
+ListenOn: 0.0.0.0:9001
+Etcd:
+  Hosts:
+    - etcd:2379
+  Key: user-rpc.rpc
+Middlewares:
+  Stat: false
+MySQL:
+  DSN: ${MYSQL_USER}:${MYSQL_PASSWORD}@tcp(${MYSQL_HOST}:${MYSQL_PORT})/${MYSQL_DATABASE}?charset=utf8mb4&parseTime=true&loc=Local
+CacheRedis:
+  Host: redis:6379
+  Type: node
+  Pass: ""
+JWT:
+  Secret: ${JWT_SECRET}
+  ExpireHours: 72
+RabbitMQ:
+  Url: amqp://guest:guest@rabbitmq:5672/
+  Exchange: quant.events
+AppLog:
+  Level: info

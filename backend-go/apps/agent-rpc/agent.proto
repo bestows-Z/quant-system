@@ -1,0 +1,202 @@
+syntax = "proto3";
+
+package agent;
+
+option go_package = "./agent";
+
+message AnalyzeStockReq {
+  uint64 user_id = 1;
+  string symbol = 2;
+  string question = 3;
+  uint64 knowledge_base_id = 4;
+  uint64 account_id = 5;
+}
+
+message ExplainSignalReq {
+  uint64 user_id = 1;
+  string symbol = 2;
+  string question = 3;
+  uint64 knowledge_base_id = 4;
+}
+
+message ReviewBacktestReq {
+  uint64 user_id = 1;
+  uint64 backtest_id = 2;
+  string question = 3;
+  uint64 knowledge_base_id = 4;
+}
+
+message ReviewPaperAccountReq {
+  uint64 user_id = 1;
+  uint64 account_id = 2;
+  string question = 3;
+  uint64 knowledge_base_id = 4;
+}
+
+message AgentAskReq {
+  uint64 user_id = 1;
+  string question = 2;
+  string symbol = 3;
+  uint64 knowledge_base_id = 4;
+  uint64 account_id = 5;
+}
+
+message AgentReport {
+  uint64 id = 1;
+  uint64 task_id = 2;
+  string task_no = 3;
+  string symbol = 4;
+  string report_type = 5;
+  string summary = 6;
+  string market_analysis = 7;
+  string technical_analysis = 8;
+  string strategy_analysis = 9;
+  string rag_analysis = 10;
+  string paper_trading_analysis = 11;
+  string risk_analysis = 12;
+  string final_view = 13;
+  double confidence = 14;
+  string risk_level = 15;
+  string references_json = 16;
+  string disclaimer = 17;
+  string created_at = 18;
+  uint64 model_config_id = 19;
+  string provider_code = 20;
+  string model = 21;
+  uint64 prompt_tokens = 22;
+  uint64 completion_tokens = 23;
+  uint64 total_tokens = 24;
+  int64 latency_ms = 25;
+  string token_source = 26;
+  string data_sources_json = 27;
+  double evidence_completeness = 28;
+}
+
+message AnalyzeStockResp {
+  uint64 task_id = 1;
+  string task_no = 2;
+  string symbol = 3;
+  string summary = 4;
+  string market_analysis = 5;
+  string technical_analysis = 6;
+  string strategy_analysis = 7;
+  string rag_analysis = 8;
+  string paper_trading_analysis = 9;
+  string risk_analysis = 10;
+  string final_view = 11;
+  double confidence = 12;
+  string risk_level = 13;
+  string references_json = 14;
+  string disclaimer = 15;
+  uint64 report_id = 16;
+  uint64 model_config_id = 17;
+  string provider_code = 18;
+  string model = 19;
+  uint64 prompt_tokens = 20;
+  uint64 completion_tokens = 21;
+  uint64 total_tokens = 22;
+  int64 latency_ms = 23;
+  string token_source = 24;
+  string data_sources_json = 25;
+  double evidence_completeness = 26;
+}
+
+message ExplainSignalResp { AnalyzeStockResp result = 1; }
+message ReviewBacktestResp { AnalyzeStockResp result = 1; }
+message ReviewPaperAccountResp { AnalyzeStockResp result = 1; }
+message AgentAskResp { AnalyzeStockResp result = 1; }
+
+message ListAgentTasksReq {
+  uint64 user_id = 1;
+  string status = 2;
+  string task_type = 3;
+  int64 limit = 4;
+}
+
+message GetAgentTaskReq {
+  uint64 user_id = 1;
+  uint64 task_id = 2;
+}
+
+message GetAgentReportReq {
+  uint64 user_id = 1;
+  uint64 report_id = 2;
+}
+
+message ListAgentReportsReq {
+  uint64 user_id = 1;
+  string symbol = 2;
+  string report_type = 3;
+  string start_date = 4;
+  string end_date = 5;
+  int64 limit = 6;
+  int64 offset = 7;
+}
+
+message AgentTask {
+  uint64 id = 1;
+  string task_no = 2;
+  uint64 user_id = 3;
+  string task_type = 4;
+  string symbol = 5;
+  string title = 6;
+  string question = 7;
+  string status = 8;
+  string risk_level = 9;
+  double confidence = 10;
+  string summary = 11;
+  string error_message = 12;
+  string created_at = 13;
+  string started_at = 14;
+  string finished_at = 15;
+}
+
+message ListAgentTasksResp { repeated AgentTask items = 1; }
+message GetAgentTaskResp { AgentTask item = 1; }
+message GetAgentReportResp { AgentReport item = 1; }
+message ListAgentReportsResp { repeated AgentReport items = 1; uint64 total = 2; }
+message DeleteAgentReportsReq { uint64 user_id = 1; repeated uint64 report_ids = 2; }
+message DeleteAgentReportsResp { uint64 deleted_count = 1; }
+
+message AgentChatSession {
+  uint64 id = 1; string title = 2; string status = 3; string last_message_at = 4; string created_at = 5;
+}
+message AgentChatMessage {
+  uint64 id = 1; uint64 session_id = 2; string request_id = 3; string role = 4; string content = 5;
+  string status = 6; string provider = 7; string model = 8; int32 input_tokens = 9; int32 output_tokens = 10;
+  int64 latency_ms = 11; string citations_json = 12; string tool_calls_json = 13; string error_message = 14; string created_at = 15;
+}
+message CreateChatSessionReq { uint64 user_id = 1; string title = 2; }
+message CreateChatSessionResp { AgentChatSession item = 1; }
+message ListChatSessionsReq { uint64 user_id = 1; }
+message ListChatSessionsResp { repeated AgentChatSession items = 1; }
+message RenameChatSessionReq { uint64 user_id = 1; uint64 session_id = 2; string title = 3; }
+message RenameChatSessionResp { AgentChatSession item = 1; }
+message ChatSessionReq { uint64 user_id = 1; uint64 session_id = 2; }
+message ChatMutationResp { uint64 affected = 1; }
+message ListChatMessagesResp { repeated AgentChatMessage items = 1; }
+message AgentChatAskReq {
+  uint64 user_id = 1; uint64 session_id = 2; string request_id = 3; string content = 4;
+  string symbol = 5; uint64 account_id = 6; uint64 knowledge_base_id = 7;
+}
+message AgentChatAskResp { AgentChatMessage message = 1; uint64 report_id = 2; }
+
+service Agent {
+  rpc AnalyzeStock(AnalyzeStockReq) returns (AnalyzeStockResp);
+  rpc ExplainSignal(ExplainSignalReq) returns (ExplainSignalResp);
+  rpc ReviewBacktest(ReviewBacktestReq) returns (ReviewBacktestResp);
+  rpc ReviewPaperAccount(ReviewPaperAccountReq) returns (ReviewPaperAccountResp);
+  rpc Ask(AgentAskReq) returns (AgentAskResp);
+  rpc ListTasks(ListAgentTasksReq) returns (ListAgentTasksResp);
+  rpc GetTask(GetAgentTaskReq) returns (GetAgentTaskResp);
+  rpc GetReport(GetAgentReportReq) returns (GetAgentReportResp);
+  rpc ListReports(ListAgentReportsReq) returns (ListAgentReportsResp);
+  rpc DeleteReports(DeleteAgentReportsReq) returns (DeleteAgentReportsResp);
+  rpc CreateChatSession(CreateChatSessionReq) returns (CreateChatSessionResp);
+  rpc ListChatSessions(ListChatSessionsReq) returns (ListChatSessionsResp);
+  rpc RenameChatSession(RenameChatSessionReq) returns (RenameChatSessionResp);
+  rpc DeleteChatSession(ChatSessionReq) returns (ChatMutationResp);
+  rpc ClearChatMessages(ChatSessionReq) returns (ChatMutationResp);
+  rpc ListChatMessages(ChatSessionReq) returns (ListChatMessagesResp);
+  rpc ChatAsk(AgentChatAskReq) returns (AgentChatAskResp);
+}

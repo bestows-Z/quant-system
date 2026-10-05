@@ -1,0 +1,56 @@
+syntax = "proto3";
+
+package autotrader;
+option go_package = "./autotrader";
+
+message UserReq { uint64 user_id = 1; }
+message AccountReq { uint64 user_id = 1; uint64 account_id = 2; }
+message StrategyReq { uint64 user_id = 1; uint64 strategy_id = 2; }
+message RawReply { string json = 1; }
+message CreateAccountReq {
+  uint64 user_id = 1;
+  uint64 paper_account_id = 2;
+  string name = 3;
+  double max_position_ratio = 4;
+  double max_daily_loss_ratio = 5;
+  double min_signal_score = 6;
+  int32 max_symbols = 7;
+  double max_total_position_ratio = 8;
+}
+message GenerateStrategyReq { uint64 user_id = 1; uint64 account_id = 2; string objective = 3; }
+message UpdateAccountReq {
+  uint64 user_id = 1;
+  uint64 account_id = 2;
+  string name = 3;
+  double max_position_ratio = 4;
+  double max_daily_loss_ratio = 5;
+  double min_signal_score = 6;
+  int32 max_symbols = 7;
+  double max_total_position_ratio = 8;
+}
+message DeliveryStatementReq {
+  uint64 user_id = 1;
+  uint64 account_id = 2;
+  string start_date = 3;
+  string end_date = 4;
+  string symbol = 5;
+  int32 limit = 6;
+}
+
+service AutoTrader {
+  rpc CreateAccount(CreateAccountReq) returns (RawReply);
+  rpc ListAccounts(UserReq) returns (RawReply);
+  rpc ListArchivedAccounts(UserReq) returns (RawReply);
+  rpc UpdateAccount(UpdateAccountReq) returns (RawReply);
+  rpc ArchiveAccount(AccountReq) returns (RawReply);
+  rpc GenerateStrategy(GenerateStrategyReq) returns (RawReply);
+  rpc ListStrategies(AccountReq) returns (RawReply);
+  rpc GetStrategy(StrategyReq) returns (RawReply);
+  rpc EvaluateStrategy(StrategyReq) returns (RawReply);
+  rpc PromoteStrategy(StrategyReq) returns (RawReply);
+  rpc Start(AccountReq) returns (RawReply);
+  rpc Pause(AccountReq) returns (RawReply);
+  rpc ListRuns(AccountReq) returns (RawReply);
+  rpc ListDecisions(AccountReq) returns (RawReply);
+  rpc ListDeliveryStatements(DeliveryStatementReq) returns (RawReply);
+}

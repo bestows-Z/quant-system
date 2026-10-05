@@ -1,0 +1,20 @@
+CREATE TABLE IF NOT EXISTS sector_minute_snapshots (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  sector_code VARCHAR(160) NOT NULL,
+  sector_name VARCHAR(128) NOT NULL,
+  snapshot_time DATETIME NOT NULL,
+  change_percent DECIMAL(12,8) DEFAULT NULL,
+  rise_count INT NOT NULL DEFAULT 0,
+  fall_count INT NOT NULL DEFAULT 0,
+  quoted_count INT NOT NULL DEFAULT 0,
+  stock_count INT NOT NULL DEFAULT 0,
+  coverage_rate DECIMAL(12,8) NOT NULL DEFAULT 0,
+  total_amount DECIMAL(24,4) NOT NULL DEFAULT 0,
+  source VARCHAR(64) NOT NULL DEFAULT 'realtime_quotes',
+  data_mode VARCHAR(16) NOT NULL DEFAULT 'real',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_sector_snapshot (sector_code, snapshot_time),
+  KEY idx_sector_time (sector_code, snapshot_time DESC),
+  KEY idx_snapshot_time (snapshot_time DESC)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='真实成分股行情聚合的板块分钟快照';

@@ -1,0 +1,63 @@
+CREATE TABLE IF NOT EXISTS dragon_tiger_records (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  trade_date DATE NOT NULL,
+  symbol VARCHAR(16) NOT NULL,
+  name VARCHAR(80) NOT NULL DEFAULT '',
+  reason VARCHAR(500) NOT NULL DEFAULT '',
+  close_price DECIMAL(20,6) NOT NULL DEFAULT 0,
+  change_percent DECIMAL(16,8) NOT NULL DEFAULT 0,
+  net_buy_amount DECIMAL(24,6) NOT NULL DEFAULT 0,
+  buy_amount DECIMAL(24,6) NOT NULL DEFAULT 0,
+  sell_amount DECIMAL(24,6) NOT NULL DEFAULT 0,
+  turnover_amount DECIMAL(24,6) NOT NULL DEFAULT 0,
+  source VARCHAR(40) NOT NULL,
+  source_key VARCHAR(120) NOT NULL,
+  collected_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_dragon_tiger_source (source, source_key),
+  KEY idx_dragon_tiger_date_amount (trade_date, net_buy_amount),
+  KEY idx_dragon_tiger_symbol_date (symbol, trade_date)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS market_breadth_snapshots (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  quote_time DATETIME(3) NOT NULL,
+  rise_count INT NOT NULL DEFAULT 0,
+  fall_count INT NOT NULL DEFAULT 0,
+  flat_count INT NOT NULL DEFAULT 0,
+  limit_up_count INT NOT NULL DEFAULT 0,
+  limit_down_count INT NOT NULL DEFAULT 0,
+  total_amount DECIMAL(26,6) NOT NULL DEFAULT 0,
+  median_change DECIMAL(16,8) NOT NULL DEFAULT 0,
+  source VARCHAR(40) NOT NULL DEFAULT 'database',
+  created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  KEY idx_market_breadth_time (quote_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS candidate_pool_snapshots (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  snapshot_no VARCHAR(64) NOT NULL,
+  symbol VARCHAR(16) NOT NULL,
+  name VARCHAR(80) NOT NULL DEFAULT '',
+  industry VARCHAR(120) NOT NULL DEFAULT '',
+  total_score DECIMAL(12,4) NOT NULL,
+  technical_score DECIMAL(12,4) NOT NULL,
+  capital_score DECIMAL(12,4) NOT NULL,
+  sentiment_score DECIMAL(12,4) NOT NULL,
+  sector_score DECIMAL(12,4) NOT NULL,
+  risk_score DECIMAL(12,4) NOT NULL,
+  confidence DECIMAL(12,8) NOT NULL,
+  evidence_json JSON NOT NULL,
+  factor_version VARCHAR(40) NOT NULL,
+  scoring_version VARCHAR(40) NOT NULL,
+  data_source VARCHAR(40) NOT NULL,
+  quote_time DATETIME(3) DEFAULT NULL,
+  created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_candidate_snapshot_symbol (snapshot_no, symbol),
+  KEY idx_candidate_created_score (created_at, total_score),
+  KEY idx_candidate_symbol_time (symbol, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
